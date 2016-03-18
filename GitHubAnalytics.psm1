@@ -934,3 +934,35 @@ function Get-GitHubOrganizationRepository
 
     return $repositories
 }
+
+<#
+    .SYNOPSIS Function which gets the authenticated user
+
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        $user = Get-GitHubAuthenticatedUser
+#>
+function Get-GitHubAuthenticatedUser
+{
+    param
+    (
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $resultToReturn = @()
+
+    $query = "$script:gitHubApiUrl/user?"
+            
+    if (![string]::IsNullOrEmpty($gitHubAccessToken))
+    {
+        $query += "&access_token=$gitHubAccessToken"
+    }
+        
+    $jsonResult = Invoke-WebRequest $query
+    $user = ConvertFrom-Json -InputObject $jsonResult.content
+
+    return $user
+}
