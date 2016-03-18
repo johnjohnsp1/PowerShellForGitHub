@@ -744,3 +744,56 @@ function Get-GitHubTeams
 
     return $teams
 }
+
+<#
+    .SYNOPSIS Obtain organization team members list
+    .PARAM 
+        organizationName name of the organization
+    .PARAM 
+        teamName name of the team in the organization
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+
+    .EXAMPLE $members = Get-GitHubTeamMembers -organizationName PowerShell -teamName Everybody
+#>
+function Get-GitHubTeamMembers
+{
+    param 
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String] $organizationName,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String] $teamName,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $teams = Get-GitHubTeams -organizationName $organizationName
+    $team = $teams | ? {$_.name -eq $teamName}
+    if ($team) {
+        Write-Host "Found team $teamName with id $($team.id)"
+    } else {
+        Write-Host "Cannot find team $teamName"
+        return
+    }
+
+    $query = "$script:gitHubApiUrl/teams/$($team.id)/members?per_page=$maxPageSize"
+        
+    if (![string]::IsNullOrEmpty($gitHubAccessToken))
+    {
+        $query += "&access_token=$gitHubAccessToken"
+    }
+    
+    $jsonResult = Invoke-WebRequest $query
+    $members = ConvertFrom-Json -InputObject $jsonResult.content
+
+    if ($members.Count -eq $maxPageSize)
+    {
+        Write-Warning "We hit the limit of $maxPageSize per page. This function currently does not support pagination."
+    }
+
+    return $members
+}
