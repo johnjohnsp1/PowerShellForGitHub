@@ -620,5 +620,51 @@ function Get-GitHubRepositoryCollaborators
     return $resultToReturn
 }
 
+<#
+    .SYNOPSIS Obtain repository contributors
 
+    .EXAMPLE $contributors = Get-GitHubRepositoryContributors -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
+#>
+function Get-GitHubRepositoryContributors
+{
+    param 
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String[]] $repositoryUrl,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $resultToReturn = @()
+    
+    foreach ($repository in $repositoryUrl)
+    {
+        $index = 0
+        Write-Host "Getting repository contributors for repository $repository" -ForegroundColor Yellow
+
+        $repositoryName = Get-GitHubRepositoryNameFromUrl -repositoryUrl $repository
+        $repositoryOwner = Get-GitHubRepositoryOwnerFromUrl -repositoryUrl $repository
+
+        $query = "$script:gitHubApiReposUrl/$repositoryOwner/$repositoryName/stats/contributors"
+            
+        if (![string]::IsNullOrEmpty($gitHubAccessToken))
+        {
+            $query += "?access_token=$gitHubAccessToken"
+        }
+        
+        # Obtain all issues    
+        $jsonResult = Invoke-WebRequest $query
+        $contributors = ConvertFrom-Json -InputObject $jsonResult.content
+
+        foreach ($contributor in $contributors)
+        {          
+            Write-Host "$index. $($contributor.author.login) ## Commits: $($contributor.total)"
+            $index++
+
+            $resultToReturn += $contributor
+        }
+    }
+
+    return $resultToReturn
+}
 
