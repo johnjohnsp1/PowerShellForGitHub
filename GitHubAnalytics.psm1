@@ -668,3 +668,41 @@ function Get-GitHubRepositoryContributors
     return $resultToReturn
 }
 
+<#
+    .SYNOPSIS Obtain organization members list
+    .PARAM 
+        organizationName name of the organization
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+
+    .EXAMPLE $members = Get-GitHubOrganizationMembers -organizationName PowerShell
+#>
+function Get-GitHubOrganizationMembers
+{
+    param 
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String] $organizationName,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $query = "$script:gitHubApiOrgsUrl/$organizationName/members?per_page=$maxPageSize"
+        
+    if (![string]::IsNullOrEmpty($gitHubAccessToken))
+    {
+        $query += "&access_token=$gitHubAccessToken"
+    }
+    
+    $jsonResult = Invoke-WebRequest $query
+    $members = ConvertFrom-Json -InputObject $jsonResult.content
+
+    if ($members.Count -eq $maxPageSize)
+    {
+        Write-Warning "We hit the limit of $maxPageSize per page. This function currently does not support pagination."
+    }
+
+    return $members
+}
