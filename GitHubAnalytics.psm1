@@ -827,3 +827,21 @@ function Get-GitHubRepositoryUniqueContributors
 
     return $uniqueContributors
 }
+
+<#
+    .SYNOPSIS Obtain repository name from it's url
+
+    .EXAMPLE Get-GitHubRepositoryNameFromUrl -repositoryUrl "https://github.com/PowerShell/xRobocopy"
+#>
+function Get-GitHubRepositoryNameFromUrl
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        $repositoryUrl
+    )
+
+    $repositoryName = Split-Path $repositoryUrl -Leaf
+    return $repositoryName
+}
