@@ -572,3 +572,53 @@ function Get-GitHubTopPullRequestsRepository
     return $repositoryPullRequests
 }
 
+<#
+    .SYNOPSIS Obtain repository collaborators
+
+    .EXAMPLE $collaborators = Get-GitHubRepositoryCollaborators -repositoryUrl @('https://github.com/PowerShell/DscResources')
+#>
+function Get-GitHubRepositoryCollaborators
+{
+    param 
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String[]] $repositoryUrl,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $resultToReturn = @()
+    
+    foreach ($repository in $repositoryUrl)
+    {
+        $index = 0
+        Write-Host "Getting repository collaborators for repository $repository" -ForegroundColor Yellow
+
+        $repositoryName = Get-GitHubRepositoryNameFromUrl -repositoryUrl $repository
+        $repositoryOwner = Get-GitHubRepositoryOwnerFromUrl -repositoryUrl $repository
+
+        $query = "$script:gitHubApiReposUrl/$repositoryOwner/$repositoryName/collaborators"
+            
+        if (![string]::IsNullOrEmpty($gitHubAccessToken))
+        {
+            $query += "?access_token=$gitHubAccessToken"
+        }
+        
+        # Obtain all issues    
+        $jsonResult = Invoke-WebRequest $query
+        $collaborators = ConvertFrom-Json -InputObject $jsonResult.content
+
+        foreach ($collaborator in $collaborators)
+        {          
+            Write-Host "$index. $($collaborator.login)"
+            $index++
+
+            $resultToReturn += $collaborator
+        }
+    }
+
+    return $resultToReturn
+}
+
+
+
