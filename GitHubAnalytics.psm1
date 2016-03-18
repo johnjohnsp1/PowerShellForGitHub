@@ -488,3 +488,87 @@ function Get-GitHubWeeklyPullRequestsForRepository
     return $results    
 }
 
+<#
+    .SYNOPSIS Function which returns repositories with biggest number of pull requests meeting specified criteria
+    .PARAM
+        repositoryUrl Array of repository urls which we want to get pull requests from
+    .PARAM 
+        state Whether we want to get information about open pull requests, closed or both
+    .PARAM
+        createdOnOrAfter Get information about pull requests created after specific date
+    .PARAM
+        mergedOnOrAfter Get information about pull requests merged after specific date
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        Get-GitHubTopPullRequestsRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xwebadministration') -state closed -mergedOnOrAfter 2015-04-20
+
+#>
+function Get-GitHubTopPullRequestsRepository
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String[]] $repositoryUrl,
+        [ValidateSet("open", "closed", "all")]
+        [String] $state = "open",
+        [DateTime] $createdOnOrAfter,
+        [DateTime] $mergedOnOrAfter,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+    
+    if (($state -eq "open") -and ($mergedOnOrAfter -ne $null))
+    {
+        Throw "mergedOnOrAfter cannot be specified if state is open"
+    }
+
+    $repositoryPullRequests = @{}
+
+    foreach ($repository in $repositoryUrl)
+    {
+        if (($mergedOnOrAfter -ne $null) -and ($createdOnOrAfter -ne $null))
+        {
+            $pullRequests = Get-GitHubPullRequestsForRepository `
+            -repositoryUrl $repository `
+            -state $state -mergedOnOrAfter $mergedOnOrAfter -createdOnOrAfter $createdOnOrAfter
+        }
+        elseif (($mergedOnOrAfter -ne $null) -and ($createdOnOrAfter -eq $null))
+        {
+            $pullRequests = Get-GitHubPullRequestsForRepository `
+            -repositoryUrl $repository `
+            -state $state -mergedOnOrAfter $mergedOnOrAfter
+        }
+        elseif (($mergedOnOrAfter -eq $null) -and ($createdOnOrAfter -ne $null))
+        {
+            $pullRequests = Get-GitHubPullRequestsForRepository `
+            -repositoryUrl $repository `
+            -state $state -createdOnOrAfter $createdOnOrAfter
+        }
+        elseif (($mergedOnOrAfter -eq $null) -and ($createdOnOrAfter -eq $null))
+        {
+            $pullRequests = Get-GitHubPullRequestsForRepository `
+            -repositoryUrl $repository `
+            -state $state
+        }
+
+        if (($pullRequests -ne $null) -and ($pullRequests.Count -eq $null))
+        {
+            $count = 1
+        }
+        else
+        {
+            $count = $pullRequests.Count
+        }
+
+        $repositoryName = Get-GitHubRepositoryNameFromUrl -repositoryUrl $repository
+        $repositoryPullRequests.Add($repositoryName, $count)
+    }
+
+    $repositoryPullRequests = $repositoryPullRequests.GetEnumerator() | Sort-Object Value -Descending
+
+    return $repositoryPullRequests
+}
+
