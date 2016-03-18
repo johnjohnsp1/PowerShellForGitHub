@@ -706,3 +706,41 @@ function Get-GitHubOrganizationMembers
 
     return $members
 }
+
+<#
+    .SYNOPSIS Obtain organization teams list
+    .PARAM 
+        organizationName name of the organization
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE Get-GitHubTeams -organizationName PowerShell
+#>
+function Get-GitHubTeams
+{
+    param 
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String] $organizationName,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $query = "$script:gitHubApiUrl/orgs/$organizationName/teams?per_page=$maxPageSize"
+        
+    if (![string]::IsNullOrEmpty($gitHubAccessToken))
+    {
+        $query += "&access_token=$gitHubAccessToken"
+    }
+    
+    $jsonResult = Invoke-WebRequest $query
+    $teams = ConvertFrom-Json -InputObject $jsonResult.content
+
+    if ($teams.Count -eq $maxPageSize)
+    {
+        Write-Warning "We hit the limit of $maxPageSize per page. This function currently does not support pagination."
+    }
+
+    return $teams
+}
