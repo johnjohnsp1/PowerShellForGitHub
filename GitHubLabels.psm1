@@ -168,3 +168,55 @@ function Remove-GitHubLabel
             Write-Error $labelName "was not deleted. Result: $result"
         }
 }
+
+<#
+    .SYNOPSIS Function to update label in given repository
+    .PARAM
+        repositoryName Name of the repository
+    .PARAM 
+        ownerName Owner of the repository
+    .PARAM
+        labelName Name of the label to update
+    .PARAM
+        newLabelName New name of the label
+    .PARAM
+        labelColor New color of the label
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        Update-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName Powershell -labelName TestLabel -newLabelName NewTestLabel -labelColor BBBB00
+#>
+function Update-GitHubLabel
+{
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$repositoryName,
+        [Parameter(Mandatory=$true)]
+        [string]$ownerName,
+        [Parameter(Mandatory=$true)]
+        [string]$labelName,
+        [Parameter(Mandatory=$true)]
+        [string]$newLabelName,
+        [string]$labelColor = "EEEEEE",
+        [string]$gitHubAccessToken = $script:gitHubToken
+        )           
+            
+        $headers = @{"Authorization"="token $gitHubAccessToken"}
+        $hashTable = @{"name"=$newLabelName; "color"=$labelColor}
+        $data = $hashTable | ConvertTo-Json
+        $url = "$script:gitHubApiReposUrl/{0}/{1}/labels/{2}" -f $ownerName, $repositoryName, $labelName
+        
+        Write-Host "Updating label '$labelName' to name '$newLabelName' and color '$labelColor'"
+        $result = Invoke-WebRequest $url -Method Patch -Body $data -Headers $headers
+
+        if ($result.StatusCode -eq 200) 
+        {
+            Write-Host $labelName "was updated"
+        } 
+        else
+        {
+            Write-Error $labelName "was not updated. Result: $result"
+        }
+}
