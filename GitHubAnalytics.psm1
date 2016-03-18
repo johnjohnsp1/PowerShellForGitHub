@@ -214,3 +214,87 @@ function Get-GitHubWeeklyIssuesForRepository
     $results += @{"BeginningOfWeek"="total"; "Issues"=$totalIssues}
     return $results    
 }
+
+<#
+    .SYNOPSIS Function which returns repositories with biggest number of issues meeting specified criteria
+    .PARAM
+        repositoryUrl Array of repository urls which we want to get issues from
+    .PARAM 
+        state Whether we want to get information about open issues, closed or both
+    .PARAM
+        createdOnOrAfter Get information about issues created after specific date
+    .PARAM
+        closedOnOrAfter Get information about issues closed after specific date
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        Get-GitHubTopIssuesRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xCertificate', 'https://github.com/powershell/xwebadministration') -state open
+
+#>
+function Get-GitHubTopIssuesRepository
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String[]] $repositoryUrl,
+        [ValidateSet("open", "closed", "all")]
+        [String] $state = "open",
+        [DateTime] $createdOnOrAfter,
+        [DateTime] $closedOnOrAfter,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+    
+    if (($state -eq "open") -and ($closedOnOrAfter -ne $null))
+    {
+        Throw "closedOnOrAfter cannot be specified if state is open"
+    }
+
+    $repositoryIssues = @{}
+
+    foreach ($repository in $repositoryUrl)
+    {
+        if (($closedOnOrAfter -ne $null) -and ($createdOnOrAfter -ne $null))
+        {
+            $issues = Get-GitHubIssuesForRepository `
+            -repositoryUrl $repository `
+            -state $state -closedOnOrAfter $closedOnOrAfter -createdOnOrAfter $createdOnOrAfter
+        }
+        elseif (($closedOnOrAfter -ne $null) -and ($createdOnOrAfter -eq $null))
+        {
+            $issues = Get-GitHubIssuesForRepository `
+            -repositoryUrl $repository `
+            -state $state -closedOnOrAfter $closedOnOrAfter
+        }
+        elseif (($closedOnOrAfter -eq $null) -and ($createdOnOrAfter -ne $null))
+        {
+            $issues = Get-GitHubIssuesForRepository `
+            -repositoryUrl $repository `
+            -state $state -createdOnOrAfter $createdOnOrAfter
+        }
+        elseif (($closedOnOrAfter -eq $null) -and ($createdOnOrAfter -eq $null))
+        {
+            $issues = Get-GitHubIssuesForRepository `
+            -repositoryUrl $repository `
+            -state $state
+        }
+
+        if (($issues -ne $null) -and ($issues.Count -eq $null))
+        {
+            $count = 1
+        }
+        else
+        {
+            $count = $issues.Count
+        }
+
+        $repositoryName = Get-GitHubRepositoryNameFromUrl -repositoryUrl $repository
+        $repositoryIssues.Add($repositoryName, $count)
+    }
+
+    $repositoryIssues = $repositoryIssues.GetEnumerator() | Sort-Object Value -Descending
+
+    return $repositoryIssues
+}
