@@ -864,3 +864,37 @@ function Get-GitHubRepositoryOwnerFromUrl
     $repositoryOwner = Split-Path $repositoryOwner -Leaf
     return $repositoryOwner
 }
+
+<#
+    .SYNOPSIS Returns array with dates with starts of $numberOfWeeks previous weeks.
+        Dates are sorted in reverse chronological order
+
+    .EXAMPLE Get-WeekDates -numberOfWeeks 10
+#>
+function Get-WeekDates
+{
+    param
+    (
+        [int] $numberOfWeeks = 12
+    ) 
+
+    $beginningsOfWeeks = @()
+
+    $today = Get-Date
+    $midnightToday = Get-Date -Hour 0 -Minute 0 -Second 0 -Millisecond 0
+    $startOfWeek = $midnightToday.AddDays(- ($midnightToday.DayOfWeek.value__ - 1))
+
+    if ($numberOfWeeks -ge 1)
+    {
+        $beginningsOfWeeks += $startOfWeek
+    }
+
+    for ($week = 2; $week -le $numberOfWeeks; $week++)
+    {
+        # Get date of previous Monday
+        $startOfWeek = $startOfWeek.AddDays(-7)
+        $beginningsOfWeeks += $startOfWeek
+    }
+
+    return $beginningsOfWeeks
+}
