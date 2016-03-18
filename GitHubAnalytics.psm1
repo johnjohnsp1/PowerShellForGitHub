@@ -298,3 +298,117 @@ function Get-GitHubTopIssuesRepository
 
     return $repositoryIssues
 }
+
+<#
+    .SYNOPSIS Function which gets list of pull requests for given repository
+    .PARAM
+        repositoryUrl Array of repository urls which we want to get pull requests from
+    .PARAM 
+        state Whether we want to get open, closed or all pull requests
+    .PARAM
+        createdOnOrAfter Filter to only get pull requests created on or after specific date
+    .PARAM
+        createdOnOrBefore Filter to only get pull requests created on or before specific date    
+    .PARAM
+        mergedOnOrAfter Filter to only get issues merged on or after specific date
+    .PARAM
+        mergedOnOrBefore Filter to only get issues merged on or before specific date
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        $pullRequests = Get-GitHubPullRequestsForRepository -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration')
+    .EXAMPLE
+        $pullRequests = Get-GitHubPullRequestsForRepository `
+            -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration', 'https://github.com/PowerShell/xWebAdministration') `
+            -state closed -mergedOnOrAfter 2015-02-13 -mergedOnOrBefore 2015-06-17
+
+#>
+function Get-GitHubPullRequestsForRepository
+{
+    param 
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String[]] $repositoryUrl,
+        [ValidateSet("open", "closed", "all")]
+        [String] $state = "open",
+        [DateTime] $createdOnOrAfter,
+        [DateTime] $createdOnOrBefore,
+        [DateTime] $mergedOnOrAfter,
+        [DateTime] $mergedOnOrBefore,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $resultToReturn = @()
+
+    $index = 0
+    
+    foreach ($repository in $repositoryUrl)
+    {
+        Write-Host "Getting pull requests for repository $repository" -ForegroundColor Yellow
+
+        $repositoryName = Get-GitHubRepositoryNameFromUrl -repositoryUrl $repository
+        $repositoryOwner = Get-GitHubRepositoryOwnerFromUrl -repositoryUrl $repository
+
+        # Create query for pull requests
+        $query = "$script:gitHubApiReposUrl/$repositoryOwner/$repositoryName/pulls?state=$state"
+            
+        if (![string]::IsNullOrEmpty($gitHubAccessToken))
+        {
+            $query += "&access_token=$gitHubAccessToken"
+        }
+        
+        # Obtain pull requests
+        $jsonResult = Invoke-WebRequest $query
+        $pullRequests = ConvertFrom-Json -InputObject $jsonResult.content
+
+        foreach ($pullRequest in $pullRequests)
+        {
+            # Filter according to createdOnOrAfter
+            $createdDate = Get-Date -Date $pullRequest.created_at
+            if (($createdOnOrAfter -ne $null) -and ($createdDate -lt $createdOnOrAfter))
+            {
+                continue  
+            }
+
+            # Filter according to createdOnOrBefore
+            if (($createdOnOrBefore -ne $null) -and ($createdDate -gt $createdOnOrBefore))
+            {
+                continue  
+            }
+
+            if ($pullRequest.merged_at -ne $null)
+            {
+                # Filter according to mergedOnOrAfter
+                $mergedDate = Get-Date -Date $pullRequest.merged_at
+                if (($mergedOnOrAfter -ne $null) -and ($mergedDate -lt $mergedOnOrAfter))
+                {
+                    continue
+                }
+
+                # Filter according to mergedOnOrBefore
+                if (($mergedOnOrBefore -ne $null) -and ($mergedDate -gt $mergedOnOrBefore))
+                {
+                    continue  
+                }
+            }
+            else
+            {
+                # If issue isn't merged, but we specified filtering on mergedOn, skip it
+                if (($mergedOnOrAfter -ne $null) -or ($mergedOnOrBefore -ne $null))
+                {
+                    continue
+                }
+            }
+            
+            Write-Host "$index. $($pullRequest.html_url) ## Created: $($pullRequest.created_at) ## Merged: $($pullRequest.merged_at)"
+            $index++
+
+            $resultToReturn += $pullRequest
+        }
+    }
+
+    return $resultToReturn
+}
