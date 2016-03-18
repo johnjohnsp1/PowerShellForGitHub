@@ -876,7 +876,7 @@ function Get-WeekDates
     param
     (
         [int] $numberOfWeeks = 12
-    )
+    ) 
 
     $beginningsOfWeeks = @()
 
@@ -898,6 +898,7 @@ function Get-WeekDates
 
     return $beginningsOfWeeks
 }
+
 
 <#
     .SYNOPSIS Function which gets list of repositories for a given organization
@@ -930,7 +931,24 @@ function Get-GitHubOrganizationRepository
     }
         
     $jsonResult = Invoke-WebRequest $query
-    $repositories = ConvertFrom-Json -InputObject $jsonResult.content
+    $repositories = @()
+    foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
+    {
+      $repositories += $repository
+    }
+
+    $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
+    $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
+    while($query -notmatch '&page=1')
+    {
+      $jsonResult = Invoke-WebRequest $query
+      foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
+      {
+        $repositories += $repository
+      }
+      $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
+      $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
+    }
 
     return $repositories
 }
