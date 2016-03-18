@@ -19,3 +19,63 @@ else
 $script:gitHubToken = $global:gitHubApiToken
 $script:gitHubApiUrl = "https://api.github.com"
 $script:gitHubApiReposUrl = "https://api.github.com/repos"
+
+<#
+    .SYNOPSIS Function to get single or all labels of given repository
+    .PARAM
+        repositoryName Name of the repository
+    .PARAM 
+        ownerName Owner of the repository
+    .PARAM
+        labelName Name of the label to get. Function will return all labels for given repository if labelName is not specified.
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        Get-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName Powershell -labelName TestLabel
+        Get-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName Powershell
+#>
+function Get-GitHubLabel 
+{
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$repositoryName,
+        [Parameter(Mandatory=$true)]
+        [string]$ownerName,
+        [string]$labelName, 
+        [string]$gitHubAccessToken = $script:gitHubToken
+        )
+        
+        $headers = @{"Authorization"="token $gitHubAccessToken"}
+        
+        if ($labelName -eq "")
+        {
+            $url = "$script:gitHubApiReposUrl/{0}/{1}/labels" -f $ownerName, $repositoryName    
+            Write-Host "Getting all labels for repository $repositoryName"
+            $result = Invoke-WebRequest $url -Method Get -Headers $headers
+            
+            if ($result.StatusCode -ne 200) 
+            {
+                Write-Error "Couldn't obtain labels. Result: $result"
+                return
+            } 
+            Write-Host "Got all labels"
+        }
+        else 
+        {
+            $url = "$script:gitHubApiReposUrl/{0}/{1}/labels/{2}" -f $ownerName, $repositoryName, $labelName
+            Write-Host "Getting label $labelName for repository $repositoryName"
+            $result = Invoke-WebRequest $url -Method Get -Headers $headers
+            
+            if ($result.StatusCode -ne 200) 
+            {
+                Write-Error "Couldn't obtain label $labelName. Result: $result"
+                return
+            } 
+            Write-Host "Got label $labelName"
+        }
+        
+        $labels = ConvertFrom-Json -InputObject $result.content
+        return $labels
+}
