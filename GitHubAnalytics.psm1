@@ -412,3 +412,79 @@ function Get-GitHubPullRequestsForRepository
 
     return $resultToReturn
 }
+
+<#
+    .SYNOPSIS Function which returns number of pull requests created/merged in every week in specific repositories
+    .PARAM
+        repositoryUrl Array of repository urls which we want to get pull requests from
+    .PARAM 
+        numberOfWeeks How many weeks we want to obtain data for
+    .PARAM 
+        dataType Whether we want to get information about created or merged pull requests in specific weeks
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        Get-GitHubWeeklyPullRequestsForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xwebadministration') -datatype merged
+
+#>
+function Get-GitHubWeeklyPullRequestsForRepository
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String[]] $repositoryUrl,
+        [int] $numberOfWeeks = 12,
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("created","merged")]
+        [string] $dataType,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+    
+    $weekDates = Get-WeekDates -numberOfWeeks $numberOfWeeks
+    $endOfWeek = Get-Date
+    $results = @()
+    $totalPullRequests = 0
+
+    foreach ($week in $weekDates)
+    {
+        Write-Host "Getting Pull Requests from week of $week"
+
+        $pullRequests = $null
+
+        if ($dataType -eq "merged")
+        {
+            $pullRequests = Get-GitHubPullRequestsForRepository `
+            -repositoryUrl $repositoryUrl `
+            -state 'all' -mergedOnOrAfter $week -mergedOnOrBefore $endOfWeek
+        }
+        elseif ($dataType -eq "created")
+        {
+            $pullRequests = Get-GitHubPullRequestsForRepository `
+            -repositoryUrl $repositoryUrl `
+            -state 'all' -createdOnOrAfter $week -createdOnOrBefore $endOfWeek
+        }
+        
+        
+        $endOfWeek = $week
+        
+
+        if (($pullRequests -ne $null) -and ($pullRequests.Count -eq $null))
+        {
+            $count = 1
+        }
+        else
+        {
+            $count = $pullRequests.Count
+        }
+        $totalPullRequests += $count
+
+        $results += @{"BeginningOfWeek"=$week; "PullRequests"=$count}
+    }
+
+    $results += @{"BeginningOfWeek"="total"; "PullRequests"=$totalPullRequests}
+    return $results    
+}
+
