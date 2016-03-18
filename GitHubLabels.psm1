@@ -125,3 +125,46 @@ function New-GitHubLabel
             Write-Error $labelName "was not created. Result: $result"
         }      
 }
+
+<#
+    .SYNOPSIS Function to remove label from given repository
+    .PARAM
+        repositoryName Name of the repository
+    .PARAM 
+        ownerName Owner of the repository
+    .PARAM
+        labelName Name of the label to delete
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        Remove-GitHubLabel -repositoryName desiredstateconfiguration -ownerName powershell -labelName TestLabel
+#>
+function Remove-GitHubLabel 
+{
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$repositoryName,
+        [Parameter(Mandatory=$true)]
+        [string]$ownerName,
+        [Parameter(Mandatory=$true)]
+        [string]$labelName,
+        [string]$gitHubAccessToken = $script:gitHubToken
+        )           
+            
+        $headers = @{"Authorization"="token $gitHubAccessToken"}
+        $url = "$script:gitHubApiReposUrl/{0}/{1}/labels/{2}" -f $ownerName, $repositoryName, $labelName
+        
+        Write-Host "Deleting Label:" $labelName
+        $result = Invoke-WebRequest $url -Method Delete -Headers $headers
+        
+        if ($result.StatusCode -eq 204) 
+        {
+            Write-Host $labelName "was deleted"
+        } 
+        else 
+        {
+            Write-Error $labelName "was not deleted. Result: $result"
+        }
+}
