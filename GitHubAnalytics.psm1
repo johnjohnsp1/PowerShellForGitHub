@@ -143,3 +143,74 @@ function Get-GitHubIssuesForRepository
     return $resultToReturn
 }
 
+<#
+    .SYNOPSIS Function which returns number of issues created/merged in every week in specific repositories
+    .PARAM
+        repositoryUrl Array of repository urls which we want to get pull requests from
+    .PARAM 
+        numberOfWeeks How many weeks we want to obtain data for
+    .PARAM 
+        dataType Whether we want to get information about created or merged issues in specific weeks
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        Get-GitHubWeeklyIssuesForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xactivedirectory') -datatype closed
+
+#>
+function Get-GitHubWeeklyIssuesForRepository
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String[]] $repositoryUrl,
+        [int] $numberOfWeeks = 12,
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("created","closed")]
+        [string] $dataType,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $weekDates = Get-WeekDates -numberOfWeeks $numberOfWeeks
+    $endOfWeek = Get-Date
+    $results = @()
+    $totalIssues = 0
+
+    foreach ($week in $weekDates)
+    {
+        Write-Host "Getting issues from week of $week"
+
+        $issues = $null
+
+        if ($dataType -eq "closed")
+        {
+            $issues = Get-GitHubIssuesForRepository `
+            -repositoryUrl $repositoryUrl -state 'all' -closedOnOrAfter $week -closedOnOrBefore $endOfWeek    
+        }
+        elseif ($dataType -eq "created")
+        {
+            $issues = Get-GitHubIssuesForRepository `
+            -repositoryUrl $repositoryUrl -state 'all' -createdOnOrAfter $week -createdOnOrBefore $endOfWeek
+        }
+        
+        $endOfWeek = $week
+        
+        if (($issues -ne $null) -and ($issues.Count -eq $null))
+        {
+            $count = 1
+        }
+        else
+        {
+            $count = $issues.Count
+        }
+        
+        $totalIssues += $count
+
+        $results += @{"BeginningOfWeek"=$week; "Issues"=$count}
+    }
+
+    $results += @{"BeginningOfWeek"="total"; "Issues"=$totalIssues}
+    return $results    
+}
