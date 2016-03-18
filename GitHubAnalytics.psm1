@@ -797,3 +797,33 @@ function Get-GitHubTeamMembers
 
     return $members
 }
+
+<#
+    .SYNOPSIS Returns array of unique contributors which were contributing to given set of repositories. Accepts output of Get-GitHubRepositoryContributors
+
+    .EXAMPLE $contributors = Get-GitHubRepositoryContributors -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
+             $uniqueContributors = Get-GitHubRepositoryUniqueContributors -contributors $contributors
+#>
+function Get-GitHubRepositoryUniqueContributors
+{
+    param 
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [object[]] $contributors
+    )
+
+    $uniqueContributors = @()
+    
+    Write-Host "Getting unique repository contributors" -ForegroundColor Yellow
+
+    foreach ($contributor in $contributors)
+    {
+        if (-not $uniqueContributors.Contains($contributor.author.login))
+        {
+            $uniqueContributors += $contributor.author.login
+        }
+    }
+
+    return $uniqueContributors
+}
