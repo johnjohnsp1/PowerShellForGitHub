@@ -845,3 +845,22 @@ function Get-GitHubRepositoryNameFromUrl
     $repositoryName = Split-Path $repositoryUrl -Leaf
     return $repositoryName
 }
+
+<#
+    .SYNOPSIS Obtain repository owner from it's url
+
+    .EXAMPLE Get-GitHubRepositoryOwnerFromUrl -repositoryUrl "https://github.com/PowerShell/xRobocopy"
+#>
+function Get-GitHubRepositoryOwnerFromUrl
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        $repositoryUrl
+    )
+
+    $repositoryOwner = Split-Path $repositoryUrl -Parent
+    $repositoryOwner = Split-Path $repositoryOwner -Leaf
+    return $repositoryOwner
+}
