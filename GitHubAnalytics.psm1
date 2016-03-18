@@ -876,7 +876,7 @@ function Get-WeekDates
     param
     (
         [int] $numberOfWeeks = 12
-    ) 
+    )
 
     $beginningsOfWeeks = @()
 
@@ -897,4 +897,40 @@ function Get-WeekDates
     }
 
     return $beginningsOfWeeks
+}
+
+<#
+    .SYNOPSIS Function which gets list of repositories for a given organization
+    .PARAM
+        organization The name of the organization
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        $repositorise = Get-GitHubOrganizationRepository -organization 'PowerShell'
+#>
+function Get-GitHubOrganizationRepository
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String] $organization,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $resultToReturn = @()
+
+    $query = "$script:gitHubApiUrl/orgs/$organization/repos?"
+            
+    if (![string]::IsNullOrEmpty($gitHubAccessToken))
+    {
+        $query += "&access_token=$gitHubAccessToken"
+    }
+        
+    $jsonResult = Invoke-WebRequest $query
+    $repositories = ConvertFrom-Json -InputObject $jsonResult.content
+
+    return $repositories
 }
