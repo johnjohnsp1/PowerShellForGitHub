@@ -220,3 +220,127 @@ function Update-GitHubLabel
             Write-Error $labelName "was not updated. Result: $result"
         }
 }
+
+<#
+    .SYNOPSIS Function to create labels for given repository.
+        It get all labels from repo, remove the ones which aren't on our approved label list, update the ones which already exist to desired color and add the ones which weren't there before.
+    .PARAM
+        repositoryName Name of the repository
+    .PARAM 
+        ownerName Owner of the repository
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        New-GitHubLabels -repositoryName DesiredStateConfiguration -ownerName Powershell
+#>
+function New-GitHubLabels
+{
+    param(
+          [Parameter(Mandatory=$true)]
+          [string]$repositoryName,
+          [Parameter(Mandatory=$true)]
+          [string]$ownerName,
+          [string]$gitHubAccessToken = $script:gitHubToken
+          )
+
+$labelJson = @"
+[
+    {
+        "name":  "pri:lowest",
+        "color":  "4285F4"
+    },
+    {
+        "name":  "pri:low",
+        "color":  "4285F4"
+    },
+    {
+        "name":  "pri:medium",
+        "color":  "4285F4"
+    },
+    {
+        "name":  "pri:high",
+        "color":  "4285F4"
+    },
+    {
+        "name":  "pri:highest",
+        "color":  "4285F4"
+    },
+    {
+        "name":  "bug",
+        "color":  "fc2929"
+    },
+    {
+        "name":  "duplicate",
+        "color":  "cccccc"
+    },
+    {
+        "name":  "enhancement",
+        "color":  "121459"
+    },
+    {
+        "name":  "up for grabs",
+        "color":  "159818"
+    },
+    {
+        "name":  "invalid",
+        "color":  "e6e6e6"
+    },
+    {
+        "name":  "question",
+        "color":  "cc317c"
+    },
+    {
+        "name":  "discussion",
+        "color":  "fe9a3d"
+    },
+    {
+        "name":  "test",
+        "color":  "e11d21"
+    },
+    {
+        "name":  "wontfix",
+        "color":  "dcb39c"
+    },
+    {
+        "name":  "in progress",
+        "color":  "f0d218"
+    },
+    {
+        "name":  "ready",
+        "color":  "145912"
+    }
+]
+
+"@
+
+    $labelList = $labelJson | ConvertFrom-Json
+    $labelListNames = $labelList.name
+    $existingLabels = Get-GitHubLabel -repositoryName $repositoryName -ownerName $ownerName -gitHubAccessToken $gitHubAccessToken
+    $existingLabelsNames = $existingLabels.name
+    
+    
+    foreach ($label in $labelList)
+    {
+        if ($label.name -notin $existingLabelsNames)
+        {
+            # Create label if it doesn't exist
+            New-GitHubLabel -repositoryName $repositoryName -ownerName $ownerName -labelName $label.name -labelColor $label.color -gitHubAccessToken $gitHubAccessToken
+        }
+        else 
+        {
+            # Update label's color if it already exists
+            Update-GitHubLabel -repositoryName $repositoryName -ownerName $ownerName -labelName $label.name -newLabelName $label.name -labelColor $label.color -gitHubAccessToken $gitHubAccessToken
+        }
+    }
+    
+    foreach ($label in $existingLabelsNames)
+    {
+        if($label -notin $labelListNames)
+        {
+            # Remove label if it exists but is not on desired label list
+            Remove-GitHubLabel -repositoryName $repositoryName -ownerName $ownerName -labelName $label -gitHubAccessToken $gitHubAccessToken
+        }
+    }
+}
