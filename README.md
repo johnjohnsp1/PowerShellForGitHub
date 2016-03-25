@@ -1,6 +1,7 @@
-# GitHubAnalytics
+# GitHubKit
 
-PowerShell module for GitHub analytics
+PowerShell wrapper for GitHub API
+Currently contains GitHubAnalytics and GitHubLabels
 
 
 ## Examples
