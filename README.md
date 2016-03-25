@@ -1,6 +1,7 @@
 # GitHubKit
 
-PowerShell wrapper for GitHub API
+PowerShell wrapper for GitHub API.
+
 Currently contains GitHubAnalytics and GitHubLabels
 
 
