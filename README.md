@@ -5,10 +5,10 @@ PowerShell wrapper for GitHub API.
 Currently contains GitHubAnalytics and GitHubLabels
 
 ## Usage
-1. Rename ApiTokensTemplate.psm1 to ApiTokens.psm1 and update value of $global:gitHubApiToken with GitHub token for your account
+1) Rename ApiTokensTemplate.psm1 to ApiTokens.psm1 and update value of $global:gitHubApiToken with GitHub token for your account
   1. You can obtain it from https://github.com/settings/tokens). 
   1. If you don't provide GitHub token, you can still use this module, but you will be limited to 60 queries per hour. 
-2. Import module you want to use and call it's function, e.g.
+2) Import module you want to use and call it's function, e.g.
 
  ```powershell
 Import-Module .\GitHubAnalytics.psm1
@@ -17,11 +17,14 @@ $issues = Get-GitHubIssuesForRepository -repositoryUrl @('https://github.com/Pow
 
 
 ## Runnig tests
-1. Install [Pester](http://www.powershellgallery.com/packages/Pester/3.4.0) 
+1) Install [Pester](http://www.powershellgallery.com/packages/Pester/3.4.0) 
+
 ```powershell
 Install-Module -Name Pester 
 ```
-2. Go to Tests folder and run
+
+2) Go to Tests folder and run
+
 ```powershell
 Invoke-Pester
 ```
