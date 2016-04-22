@@ -24,13 +24,19 @@ Describe 'Obtaininig issues for repository' {
         }
     }
     
-    Context 'When state and time range specified' {
-        $issues = Get-GitHubIssuesForRepository `
-            -repositoryUrl @($repositoryUrl) `
-            -createdOnOrAfter '2016-04-10'
+    Context 'When time range specified' {
+        $issues = Get-GitHubIssuesForRepository -repositoryUrl @($repositoryUrl) -createdOnOrAfter '2016-04-10'
 
         It 'Should return expected number of issues' {
-            @($issues).Count | Should be 1
+            @($issues).Count | Should be 2
+        }
+    }
+    
+    Context 'When state and time range specified' {
+        $issues = Get-GitHubIssuesForRepository -repositoryUrl @($repositoryUrl) -createdOnOrAfter '2016-04-01' -state closed
+
+        It 'Should return expected number of issues' {
+            @($issues).Count | Should be 2
         }
     }
 }
@@ -47,16 +53,6 @@ Describe 'Obtaininig repository with biggest number of issues' {
         It 'Should return repositories in descending order' {
             @($issues[0].Name) | Should be $script:repositoryName
             @($issues[1].Name) | Should be $script:repository2Name
-        }
-    }
-    
-    Context 'When state and time range specified' {
-        $issues = Get-GitHubIssuesForRepository `
-            -repositoryUrl @($repositoryUrl) `
-            -createdOnOrAfter '2016-04-10'
-
-        It 'Should return expected number of issues' {
-            @($issues).Count | Should be 1
         }
     }
 }
