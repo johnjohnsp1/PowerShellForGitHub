@@ -50,7 +50,7 @@ Describe 'Obtaininig repository with biggest number of issues' {
             @($issues[1].Value) | Should be 2
         }
         
-        It 'Should return repositories in descending order' {
+        It 'Should return expected repository names' {
             @($issues[0].Name) | Should be $script:repositoryName
             @($issues[1].Name) | Should be $script:repository2Name
         }
@@ -62,7 +62,7 @@ Describe 'Obtaininig pull requests for repository' {
         $pullRequests = Get-GitHubPullRequestsForRepository -repositoryUrl @($script:repositoryUrl)
 
         It 'Should return expected number of PRs' {
-            @($pullRequests).Count | Should be 1
+            @($pullRequests).Count | Should be 2
         }
     }
     
@@ -73,6 +73,36 @@ Describe 'Obtaininig pull requests for repository' {
 
         It 'Should return expected number of PRs' {
             @($pullRequests).Count | Should be 2
+        }
+    }
+}
+
+Describe 'Obtaininig repository with biggest number of pull requests' {
+    Context 'When no addional conditions specified' {
+        $pullRequests = Get-GitHubTopPullRequestsRepository -repositoryUrl @($script:repositoryUrl,$script:repositoryUrl2)
+
+        It 'Should return expected number of pull requests for each repository' {
+            @($pullRequests[0].Value) | Should be 2
+            @($pullRequests[1].Value) | Should be 1
+        }
+        
+        It 'Should return expected repository names' {
+            @($pullRequests[0].Name) | Should be $script:repositoryName
+            @($pullRequests[1].Name) | Should be $script:repository2Name
+        }
+    }
+    
+    Context 'When state and time range specified' {
+        $pullRequests = Get-GitHubTopPullRequestsRepository -repositoryUrl @($script:repositoryUrl,$script:repositoryUrl2) -state closed -mergedOnOrAfter 2015-04-20
+        
+        It 'Should return expected number of pull requests for each repository' {
+            @($pullRequests[0].Value) | Should be 3
+            @($pullRequests[1].Value) | Should be 0
+        }
+        
+        It 'Should return expected repository names' {
+            @($pullRequests[0].Name) | Should be $script:repositoryName
+            @($pullRequests[1].Name) | Should be $script:repository2Name
         }
     }
 }
