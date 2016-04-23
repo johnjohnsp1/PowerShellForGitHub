@@ -33,7 +33,9 @@ Invoke-Pester
 
 ## Examples
 
-### Querying issues
+### GitHubAnalytics
+
+#### Querying issues
 
 ```powershell
 $issues = Get-GitHubIssuesForRepository `
@@ -52,7 +54,7 @@ $issues = Get-GitHubTopIssuesRepository `
 'https://github.com/powershell/xCertificate', 'https://github.com/powershell/xwebadministration') -state open
 ```
 
-### Querying pull requests
+#### Querying pull requests
 
 ```powershell
 $pullRequests = Get-GitHubPullRequestsForRepository `
@@ -71,14 +73,14 @@ $pullRequests = Get-GitHubTopPullRequestsRepository `
 -state closed -mergedOnOrAfter 2015-04-20
 ```
 
-### Querying collaborators
+#### Querying collaborators
 
 ```powershell
 $collaborators = Get-GitHubRepositoryCollaborators`
 -repositoryUrl @('https://github.com/PowerShell/DscResources')
 ```
 
-### Querying contributors
+#### Querying contributors
 
 ```powershell
 $contributors = Get-GitHubRepositoryContributors`
@@ -92,7 +94,7 @@ $contributors = Get-GitHubRepositoryContributors`
 $uniqueContributors = Get-GitHubRepositoryUniqueContributors -contributors $contributors
 ```
 
-### Quering teams / organization membership
+#### Quering teams / organization membership
 
 Here is how you can make sure that everybody in the org has an appropriate team assignment:
 ```powershell
@@ -104,3 +106,4 @@ compare-object ($everyone.login + $linux.login + $linuxguests.login | sort | uni
 ```
 If compare outputs somebody, this user needs attention and probably assignment.
 
+### GitHubLabels
