@@ -2,8 +2,6 @@
 
 PowerShell wrapper for GitHub API.
 
-Currently contains GitHubAnalytics and GitHubLabels
-
 ## Usage
 1) Rename ApiTokensTemplate.psm1 to ApiTokens.psm1 and update value of $global:gitHubApiToken with GitHub token for your account
   * You can obtain it from https://github.com/settings/tokens). 
