@@ -106,22 +106,22 @@ If compare outputs somebody, this user needs attention and probably assignment.
 
 ### GitHubLabels
 
-Getting labels for given repository
+#### Getting labels for given repository
 ```powershell
 $labels = Get-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName Powershell
 ```
 
-Adding new label to the repository
+#### Adding new label to the repository
 ```powershell
 New-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName PowerShell -labelName TestLabel -labelColor BBBBBB
 ```
 
-Removing specific label from the repository
+#### Removing specific label from the repository
 ```powershell
 Remove-GitHubLabel -repositoryName desiredstateconfiguration -ownerName powershell -labelName TestLabel
 ```
 
-Updating specific label with new name and color
+#### Updating specific label with new name and color
 ```powershell
 Update-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName Powershell -labelName TestLabel -newLabelName NewTestLabel -labelColor BBBB00
 ```
