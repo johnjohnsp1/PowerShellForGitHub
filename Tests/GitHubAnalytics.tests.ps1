@@ -3,7 +3,7 @@
    Tests for GitHubAnalytics.psm1 module
 #>
 
-# TODO If appveyor build, get GitHubApi token from AppVeyor variable, otherwise - check for ApiTokens.psm1 file
+# TODO If appveyor build, get GitHubApi token from AppVeyor variable and store it in $script:gitHubToken, otherwise - check for ApiTokens.psm1 file (this will be automatically done when importing GitHubAnalytics.psm1/GitHubLabels.psm1)
 
 [String] $root = Split-Path -Parent (Split-Path -Parent $Script:MyInvocation.MyCommand.Path)
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubAnalytics.psm1') -Force
@@ -104,5 +104,21 @@ Describe 'Obtaininig repository with biggest number of pull requests' {
             @($pullRequests[0].Name) | Should be $script:repositoryName
             @($pullRequests[1].Name) | Should be $script:repository2Name
         }
+    }
+}
+
+Describe 'Obtaininig collaborators for repository' {
+    $collaborators = Get-GitHubRepositoryCollaborators -repositoryUrl @($script:repositoryUrl)
+
+    It 'Should return expected number of collaborators' {
+        @($collaborators).Count | Should be 1
+    }    
+}
+
+Describe 'Obtaininig contributors for repository' {
+    $contributors = Get-GitHubRepositoryContributors -repositoryUrl @($script:repositoryUrl)
+
+    It 'Should return expected number of contributors' {
+        @($contributors).Count | Should be 1
     }
 }
