@@ -807,7 +807,7 @@ function Get-GitHubTeamMembers
 #>
 function Get-GitHubRepositoryUniqueContributors
 {
-    param 
+    param
     (
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]

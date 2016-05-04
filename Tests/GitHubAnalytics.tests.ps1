@@ -10,6 +10,8 @@
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubAnalytics.psm1') -Force
 
 $script:gitHubAccountUrl = "https://github.com/KarolKaczmarek"
+$script:organizationName = "GitHubOrgTest"
+$script:organizationTeamName = "TestTeam1"
 $script:repositoryName = "TestRepository"
 $script:repository2Name = "TestRepository2"
 $script:repositoryUrl = "$script:gitHubAccountUrl/$script:repositoryName"
@@ -123,3 +125,55 @@ Describe 'Obtaininig contributors for repository' {
         @($contributors).Count | Should be 1
     }
 }
+
+Describe 'Obtaininig organization members' {
+    $members = Get-GitHubOrganizationMembers -organizationName $script:organizationName
+
+    It 'Should return expected number of organization members' {
+        @($members).Count | Should be 1
+    }
+}
+
+Describe 'Obtaininig organization teams' {
+    $teams = Get-GitHubTeams -organizationName $script:organizationName
+
+    It 'Should return expected number of organization teams' {
+        @($teams).Count | Should be 3
+    }
+}
+
+Describe 'Obtaininig organization team members' {
+    $members = Get-GitHubTeamMembers -organizationName $script:organizationName -teamName $script:organizationTeamName
+
+    It 'Should return expected number of organization team members' {
+        @($members).Count | Should be 1
+    }
+}
+
+Describe 'Getting unique contributors from contributors array' {
+    $contributors = Get-GitHubRepositoryContributors -repositoryUrl @($script:repositoryUrl)
+    $uniqueContributors = Get-GitHubRepositoryUniqueContributors -contributors $contributors
+
+    It 'Should return expected number of unique contributors' {
+        @($uniqueContributors).Count | Should be 1
+    }
+}
+
+Describe 'Getting repository name from url' {
+    $name = Get-GitHubRepositoryNameFromUrl -repositoryUrl "https://github.com/KarolKaczmarek/TestRepository"
+
+    It 'Should return expected repository name' {
+        $name | Should be "TestRepository"
+    }
+}
+
+Describe 'Getting repository owner from url' {
+    $owner = Get-GitHubRepositoryOwnerFromUrl -repositoryUrl "https://github.com/KarolKaczmarek/TestRepository"
+
+    It 'Should return expected repository owner' {
+        $owner | Should be "KarolKaczmarek"
+    }
+}
+
+
+
