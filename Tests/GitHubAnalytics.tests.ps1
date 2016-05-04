@@ -3,12 +3,15 @@
    Tests for GitHubAnalytics.psm1 module
 #>
 
-# TODO If appveyor build, get GitHubApi token from AppVeyor variable, otherwise - check for ApiTokens.psm1 file
+# TODO If appveyor build, get GitHubApi token from AppVeyor variable and store it in $script:gitHubToken, otherwise - check for ApiTokens.psm1 file (this will be automatically done when importing GitHubAnalytics.psm1/GitHubLabels.psm1)
+# TODO After importing GitHubAnalytics/GitHubLabels.psm1 we should check if we run on appveyor and $global:gitHubToken (currently in $script scope, but change it) is empty. if it is, obtain token from appveyor 
 
 [String] $root = Split-Path -Parent (Split-Path -Parent $Script:MyInvocation.MyCommand.Path)
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubAnalytics.psm1') -Force
 
 $script:gitHubAccountUrl = "https://github.com/KarolKaczmarek"
+$script:organizationName = "GitHubOrgTest"
+$script:organizationTeamName = "TestTeam1"
 $script:repositoryName = "TestRepository"
 $script:repository2Name = "TestRepository2"
 $script:repositoryUrl = "$script:gitHubAccountUrl/$script:repositoryName"
@@ -104,5 +107,78 @@ Describe 'Obtaininig repository with biggest number of pull requests' {
             @($pullRequests[0].Name) | Should be $script:repositoryName
             @($pullRequests[1].Name) | Should be $script:repository2Name
         }
+    }
+}
+
+Describe 'Obtaininig collaborators for repository' {
+    $collaborators = Get-GitHubRepositoryCollaborators -repositoryUrl @($script:repositoryUrl)
+
+    It 'Should return expected number of collaborators' {
+        @($collaborators).Count | Should be 1
+    }    
+}
+
+Describe 'Obtaininig contributors for repository' {
+    $contributors = Get-GitHubRepositoryContributors -repositoryUrl @($script:repositoryUrl)
+
+    It 'Should return expected number of contributors' {
+        @($contributors).Count | Should be 1
+    }
+}
+
+Describe 'Obtaininig organization members' {
+    $members = Get-GitHubOrganizationMembers -organizationName $script:organizationName
+
+    It 'Should return expected number of organization members' {
+        @($members).Count | Should be 1
+    }
+}
+
+Describe 'Obtaininig organization teams' {
+    $teams = Get-GitHubTeams -organizationName $script:organizationName
+
+    It 'Should return expected number of organization teams' {
+        @($teams).Count | Should be 3
+    }
+}
+
+Describe 'Obtaininig organization team members' {
+    $members = Get-GitHubTeamMembers -organizationName $script:organizationName -teamName $script:organizationTeamName
+
+    It 'Should return expected number of organization team members' {
+        @($members).Count | Should be 1
+    }
+}
+
+Describe 'Getting repositories from organization' {
+    $repositories = Get-GitHubOrganizationRepository -organization $script:organizationName
+
+    It 'Should return expected number of organization repositories' {
+        @($repositories).Count | Should be 2
+    }
+}
+
+Describe 'Getting unique contributors from contributors array' {
+    $contributors = Get-GitHubRepositoryContributors -repositoryUrl @($script:repositoryUrl)
+    $uniqueContributors = Get-GitHubRepositoryUniqueContributors -contributors $contributors
+
+    It 'Should return expected number of unique contributors' {
+        @($uniqueContributors).Count | Should be 1
+    }
+}
+
+Describe 'Getting repository name from url' {
+    $name = Get-GitHubRepositoryNameFromUrl -repositoryUrl "https://github.com/KarolKaczmarek/TestRepository"
+
+    It 'Should return expected repository name' {
+        $name | Should be "TestRepository"
+    }
+}
+
+Describe 'Getting repository owner from url' {
+    $owner = Get-GitHubRepositoryOwnerFromUrl -repositoryUrl "https://github.com/KarolKaczmarek/TestRepository"
+
+    It 'Should return expected repository owner' {
+        $owner | Should be "KarolKaczmarek"
     }
 }

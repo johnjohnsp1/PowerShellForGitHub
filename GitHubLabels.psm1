@@ -290,20 +290,12 @@ $labelJson = @"
         "color":  "159818"
     },
     {
-        "name":  "invalid",
-        "color":  "e6e6e6"
-    },
-    {
         "name":  "question",
         "color":  "cc317c"
     },
     {
         "name":  "discussion",
         "color":  "fe9a3d"
-    },
-    {
-        "name":  "test",
-        "color":  "e11d21"
     },
     {
         "name":  "wontfix",
