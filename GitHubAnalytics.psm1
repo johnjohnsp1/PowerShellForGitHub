@@ -938,6 +938,11 @@ function Get-GitHubOrganizationRepository
       $repositories += $repository
     }
 
+    if($jsonResult.Headers.Link -eq $null)
+    {
+        return $repositories
+    }
+    
     $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
     $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
     while($query -notmatch '&page=1')
