@@ -150,6 +150,14 @@ Describe 'Obtaininig organization team members' {
     }
 }
 
+Describe 'Getting repositories from organization' {
+    $repositories = Get-GitHubOrganizationRepository -organization $script:organizationName
+
+    It 'Should return expected number of organization repositories' {
+        @($repositories).Count | Should be 2
+    }
+}
+
 Describe 'Getting unique contributors from contributors array' {
     $contributors = Get-GitHubRepositoryContributors -repositoryUrl @($script:repositoryUrl)
     $uniqueContributors = Get-GitHubRepositoryUniqueContributors -contributors $contributors
@@ -174,6 +182,3 @@ Describe 'Getting repository owner from url' {
         $owner | Should be "KarolKaczmarek"
     }
 }
-
-
-
