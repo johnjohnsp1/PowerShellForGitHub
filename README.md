@@ -1,4 +1,4 @@
-# GitHubKit
+# GiPS
 
 PowerShell wrapper for GitHub API.
 
