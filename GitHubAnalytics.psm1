@@ -800,6 +800,96 @@ function Get-GitHubTeamMembers
 }
 
 <#
+    .SYNOPSIS Function which gets list of repositories for a given organization
+    .PARAM
+        organization The name of the organization
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        $repositories = Get-GitHubOrganizationRepository -organization 'PowerShell'
+#>
+function Get-GitHubOrganizationRepository
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String] $organization,
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $resultToReturn = @()
+
+    $query = "$script:gitHubApiUrl/orgs/$organization/repos?"
+            
+    if (![string]::IsNullOrEmpty($gitHubAccessToken))
+    {
+        $query += "&access_token=$gitHubAccessToken"
+    }
+        
+    $jsonResult = Invoke-WebRequest $query
+    $repositories = @()
+    foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
+    {
+      $repositories += $repository
+    }
+
+    if($jsonResult.Headers.Link -eq $null)
+    {
+        return $repositories
+    }
+    
+    $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
+    $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
+    while($query -notmatch '&page=1')
+    {
+      $jsonResult = Invoke-WebRequest $query
+      foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
+      {
+        $repositories += $repository
+      }
+      $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
+      $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
+    }
+
+    return $repositories
+}
+
+<#
+    .SYNOPSIS Function which gets the authenticated user
+
+    .PARAM
+        gitHubAccessToken GitHub API Access Token.
+            Get github token from https://github.com/settings/tokens 
+            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
+    .EXAMPLE
+        $user = Get-GitHubAuthenticatedUser
+#>
+function Get-GitHubAuthenticatedUser
+{
+    param
+    (
+        $gitHubAccessToken = $script:gitHubToken
+    )
+
+    $resultToReturn = @()
+
+    $query = "$script:gitHubApiUrl/user?"
+            
+    if (![string]::IsNullOrEmpty($gitHubAccessToken))
+    {
+        $query += "&access_token=$gitHubAccessToken"
+    }
+        
+    $jsonResult = Invoke-WebRequest $query
+    $user = ConvertFrom-Json -InputObject $jsonResult.content
+
+    return $user
+}
+
+<#
     .SYNOPSIS Returns array of unique contributors which were contributing to given set of repositories. Accepts output of Get-GitHubRepositoryContributors
 
     .EXAMPLE $contributors = Get-GitHubRepositoryContributors -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
@@ -898,95 +988,4 @@ function Get-WeekDates
     }
 
     return $beginningsOfWeeks
-}
-
-
-<#
-    .SYNOPSIS Function which gets list of repositories for a given organization
-    .PARAM
-        organization The name of the organization
-    .PARAM
-        gitHubAccessToken GitHub API Access Token.
-            Get github token from https://github.com/settings/tokens 
-            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
-    .EXAMPLE
-        $repositorise = Get-GitHubOrganizationRepository -organization 'PowerShell'
-#>
-function Get-GitHubOrganizationRepository
-{
-    param
-    (
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [String] $organization,
-        $gitHubAccessToken = $script:gitHubToken
-    )
-
-    $resultToReturn = @()
-
-    $query = "$script:gitHubApiUrl/orgs/$organization/repos?"
-            
-    if (![string]::IsNullOrEmpty($gitHubAccessToken))
-    {
-        $query += "&access_token=$gitHubAccessToken"
-    }
-        
-    $jsonResult = Invoke-WebRequest $query
-    $repositories = @()
-    foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
-    {
-      $repositories += $repository
-    }
-
-    if($jsonResult.Headers.Link -eq $null)
-    {
-        return $repositories
-    }
-    
-    $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
-    $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
-    while($query -notmatch '&page=1')
-    {
-      $jsonResult = Invoke-WebRequest $query
-      foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
-      {
-        $repositories += $repository
-      }
-      $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
-      $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
-    }
-
-    return $repositories
-}
-
-<#
-    .SYNOPSIS Function which gets the authenticated user
-
-    .PARAM
-        gitHubAccessToken GitHub API Access Token.
-            Get github token from https://github.com/settings/tokens 
-            If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
-    .EXAMPLE
-        $user = Get-GitHubAuthenticatedUser
-#>
-function Get-GitHubAuthenticatedUser
-{
-    param
-    (
-        $gitHubAccessToken = $script:gitHubToken
-    )
-
-    $resultToReturn = @()
-
-    $query = "$script:gitHubApiUrl/user?"
-            
-    if (![string]::IsNullOrEmpty($gitHubAccessToken))
-    {
-        $query += "&access_token=$gitHubAccessToken"
-    }
-        
-    $jsonResult = Invoke-WebRequest $query
-    $user = ConvertFrom-Json -InputObject $jsonResult.content
-
-    return $user
 }
