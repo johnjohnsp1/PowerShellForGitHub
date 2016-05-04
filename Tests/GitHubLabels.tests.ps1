@@ -3,6 +3,11 @@
    Tests for GitHubLabels.psm1 module
 #>
 
+if ($env:AppVeyor)
+{
+    $global:gitHubApiToken = $env:token
+}
+
 [String] $root = Split-Path -Parent (Split-Path -Parent $Script:MyInvocation.MyCommand.Path)
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubLabels.psm1') -Force
 

@@ -3,8 +3,10 @@
    Tests for GitHubAnalytics.psm1 module
 #>
 
-# TODO If appveyor build, get GitHubApi token from AppVeyor variable and store it in $script:gitHubToken, otherwise - check for ApiTokens.psm1 file (this will be automatically done when importing GitHubAnalytics.psm1/GitHubLabels.psm1)
-# TODO After importing GitHubAnalytics/GitHubLabels.psm1 we should check if we run on appveyor and $global:gitHubToken (currently in $script scope, but change it) is empty. if it is, obtain token from appveyor 
+if ($env:AppVeyor)
+{
+    $global:gitHubApiToken = $env:token
+}
 
 [String] $root = Split-Path -Parent (Split-Path -Parent $Script:MyInvocation.MyCommand.Path)
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubAnalytics.psm1') -Force
