@@ -22,6 +22,7 @@ $script:repositoryUrl2 = "$script:gitHubAccountUrl/$script:repository2Name"
 
 Describe 'Obtaininig issues for repository' {
     Context 'When no addional conditions specified' {
+        Write-Host "Token: $env:token"
         $issues = Get-GitHubIssuesForRepository -repositoryUrl @($repositoryUrl)
 
         It 'Should return expected number of issues' {
