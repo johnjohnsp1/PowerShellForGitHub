@@ -1,7 +1,7 @@
 # GiPS
 [![Build status](https://ci.appveyor.com/api/projects/status/x4g36pbltk67l0n5?svg=true)](https://ci.appveyor.com/project/PowerShell/gips)
 
-PowerShell wrapper for GitHub API.
+PowerShell wrapper for GitHub API
 
 ## Usage
 1) Rename ApiTokensTemplate.psm1 to ApiTokens.psm1 and update value of $global:gitHubApiToken with GitHub token for your account
