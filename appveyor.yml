@@ -5,7 +5,7 @@ version: 0.1.0.{build}
 
 environment:
   token:
-    secure: yIEWVYP4mDg1qrseXNgKlBR1r2G3X6U1+c1sXwfgstERI39jdR34ERVzIcfnd0bV
+    secure: NGozDvnYtFsGl0IETKNXARH+vP37VuTOh7QfxKhtJdvPYNwSjsum8oQYjwG1iKEB
 
 install:
   - cinst -y pester
