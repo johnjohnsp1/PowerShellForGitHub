@@ -11,8 +11,8 @@ if ($env:AppVeyor)
 [String] $root = Split-Path -Parent (Split-Path -Parent $Script:MyInvocation.MyCommand.Path)
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubLabels.psm1') -Force
 
-$script:gitHubAccountUrl = "https://github.com/KarolKaczmarek"
-$script:accountName = "KarolKaczmarek"
+$script:gitHubAccountUrl = "https://github.com/gipstestaccount"
+$script:accountName = "gipstestaccount"
 $script:repositoryName = "TestRepository"
 $script:repositoryUrl = "$script:gitHubAccountUrl/$script:repositoryName"
 $script:expectedNumberOfLabels = 14
