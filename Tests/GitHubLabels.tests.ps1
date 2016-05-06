@@ -17,6 +17,8 @@ $script:repositoryName = "TestRepository"
 $script:repositoryUrl = "$script:gitHubAccountUrl/$script:repositoryName"
 $script:expectedNumberOfLabels = 14
 
+New-GitHubLabels -repositoryName $script:repositoryName -ownerName $script:accountName
+
 Describe 'Getting labels from repository' {
     Context 'When querying for all labels' {
         $labels = Get-GitHubLabel -repositoryName $script:repositoryName -ownerName $script:accountName
