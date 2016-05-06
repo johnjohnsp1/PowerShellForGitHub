@@ -11,8 +11,8 @@ if ($env:AppVeyor)
 [String] $root = Split-Path -Parent (Split-Path -Parent $Script:MyInvocation.MyCommand.Path)
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubAnalytics.psm1') -Force
 
-$script:gitHubAccountUrl = "https://github.com/KarolKaczmarek"
-$script:organizationName = "GitHubOrgTest"
+$script:gitHubAccountUrl = "https://github.com/gipstestaccount"
+$script:organizationName = "GiPSTestOrg"
 $script:organizationTeamName = "TestTeam1"
 $script:repositoryName = "TestRepository"
 $script:repository2Name = "TestRepository2"
@@ -22,7 +22,6 @@ $script:repositoryUrl2 = "$script:gitHubAccountUrl/$script:repository2Name"
 
 Describe 'Obtaininig issues for repository' {
     Context 'When no addional conditions specified' {
-        Write-Host "Token: $env:token"
         $issues = Get-GitHubIssuesForRepository -repositoryUrl @($repositoryUrl)
 
         It 'Should return expected number of issues' {
@@ -31,10 +30,10 @@ Describe 'Obtaininig issues for repository' {
     }
     
     Context 'When time range specified' {
-        $issues = Get-GitHubIssuesForRepository -repositoryUrl @($repositoryUrl) -createdOnOrAfter '2016-04-10'
+        $issues = Get-GitHubIssuesForRepository -repositoryUrl @($repositoryUrl) -createdOnOrAfter '2016-05-06' -createdOnOrBefore '2016-05-08'
 
         It 'Should return expected number of issues' {
-            @($issues).Count | Should be 2
+            @($issues).Count | Should be 3
         }
     }
     
@@ -53,7 +52,7 @@ Describe 'Obtaininig repository with biggest number of issues' {
 
         It 'Should return expected number of issues for each repository' {
             @($issues[0].Value) | Should be 3
-            @($issues[1].Value) | Should be 2
+            @($issues[1].Value) | Should be 0
         }
         
         It 'Should return expected repository names' {
@@ -75,10 +74,10 @@ Describe 'Obtaininig pull requests for repository' {
     Context 'When state and time range specified' {
         $pullRequests = Get-GitHubPullRequestsForRepository `
             -repositoryUrl @($script:repositoryUrl) `
-            -state closed -mergedOnOrAfter 2016-04-10 -mergedOnOrBefore 2016-04-23
+            -state closed -mergedOnOrAfter 2016-04-10 -mergedOnOrBefore 2016-05-07
 
         It 'Should return expected number of PRs' {
-            @($pullRequests).Count | Should be 2
+            @($pullRequests).Count | Should be 3
         }
     }
 }
@@ -89,7 +88,7 @@ Describe 'Obtaininig repository with biggest number of pull requests' {
 
         It 'Should return expected number of pull requests for each repository' {
             @($pullRequests[0].Value) | Should be 2
-            @($pullRequests[1].Value) | Should be 1
+            @($pullRequests[1].Value) | Should be 0
         }
         
         It 'Should return expected repository names' {
@@ -141,7 +140,7 @@ Describe 'Obtaininig organization teams' {
     $teams = Get-GitHubTeams -organizationName $script:organizationName
 
     It 'Should return expected number of organization teams' {
-        @($teams).Count | Should be 3
+        @($teams).Count | Should be 2
     }
 }
 
