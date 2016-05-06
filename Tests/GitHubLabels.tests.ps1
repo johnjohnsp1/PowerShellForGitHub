@@ -104,6 +104,8 @@ Describe 'Updating label' {
 Describe 'Applying set of labels on repository' {
     $labelName = "TestLabel"
 
+    New-GitHubLabels -repositoryName $script:repositoryName -ownerName $script:accountName
+
     # Add new label
     New-GitHubLabel -repositoryName $script:repositoryName -ownerName $script:accountName -labelName $labelName -labelColor BBBBBB
     $labels = Get-GitHubLabel -repositoryName $script:repositoryName -ownerName $script:accountName
