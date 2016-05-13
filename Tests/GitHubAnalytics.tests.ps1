@@ -3,12 +3,31 @@
    Tests for GitHubAnalytics.psm1 module
 #>
 
+[String] $root = Split-Path -Parent (Split-Path -Parent $Script:MyInvocation.MyCommand.Path)
+
 if ($env:AppVeyor)
 {
     $global:gitHubApiToken = $env:token
 }
 
-[String] $root = Split-Path -Parent (Split-Path -Parent $Script:MyInvocation.MyCommand.Path)
+$apiTokensFilePath = "$root\ApiTokens.psm1"
+if (Test-Path $apiTokensFilePath)
+{
+    Write-Host "Importing $apiTokensFilePath"
+    Import-Module  -force $apiTokensFilePath
+}
+else
+{
+    Write-Host "$apiTokensFilePath does not exist, skipping import in tests"
+}
+
+$script:tokenExists = $true
+if ($global:gitHubApiToken -eq $null)
+{
+    Write-Host "GitHubApiToken not defined, some of the tests will be skipped. `n403 errors possible due to GitHub hourly limit for unauthenticated queries." -BackgroundColor Yellow -ForegroundColor Black
+    $script:tokenExists = $false
+}
+
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubAnalytics.psm1') -Force
 
 $script:gitHubAccountUrl = "https://github.com/gipstestaccount"
@@ -112,12 +131,15 @@ Describe 'Obtaininig repository with biggest number of pull requests' {
     }
 }
 
-Describe 'Obtaininig collaborators for repository' {
-    $collaborators = Get-GitHubRepositoryCollaborators -repositoryUrl @($script:repositoryUrl)
+if ($script:tokenExists)
+{
+    Describe 'Obtaininig collaborators for repository' {
+        $collaborators = Get-GitHubRepositoryCollaborators -repositoryUrl @($script:repositoryUrl)
 
-    It 'Should return expected number of collaborators' {
-        @($collaborators).Count | Should be 1
-    }    
+        It 'Should return expected number of collaborators' {
+            @($collaborators).Count | Should be 1
+        }    
+    }
 }
 
 Describe 'Obtaininig contributors for repository' {
@@ -128,27 +150,30 @@ Describe 'Obtaininig contributors for repository' {
     }
 }
 
-Describe 'Obtaininig organization members' {
-    $members = Get-GitHubOrganizationMembers -organizationName $script:organizationName
+if ($script:tokenExists)
+{
+    Describe 'Obtaininig organization members' {
+        $members = Get-GitHubOrganizationMembers -organizationName $script:organizationName
 
-    It 'Should return expected number of organization members' {
-        @($members).Count | Should be 1
+        It 'Should return expected number of organization members' {
+            @($members).Count | Should be 1
+        }
     }
-}
 
-Describe 'Obtaininig organization teams' {
-    $teams = Get-GitHubTeams -organizationName $script:organizationName
+    Describe 'Obtaininig organization teams' {
+        $teams = Get-GitHubTeams -organizationName $script:organizationName
 
-    It 'Should return expected number of organization teams' {
-        @($teams).Count | Should be 2
+        It 'Should return expected number of organization teams' {
+            @($teams).Count | Should be 2
+        }
     }
-}
 
-Describe 'Obtaininig organization team members' {
-    $members = Get-GitHubTeamMembers -organizationName $script:organizationName -teamName $script:organizationTeamName
+    Describe 'Obtaininig organization team members' {
+        $members = Get-GitHubTeamMembers -organizationName $script:organizationName -teamName $script:organizationTeamName
 
-    It 'Should return expected number of organization team members' {
-        @($members).Count | Should be 1
+        It 'Should return expected number of organization team members' {
+            @($members).Count | Should be 1
+        }
     }
 }
 

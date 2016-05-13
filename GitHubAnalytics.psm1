@@ -2,6 +2,7 @@
     .SYNOPSIS PowerShell module for GitHub analytics
 #>
 
+# Import module which defines $global:gitHubApiToken with GitHub API access token. Create this file it if it doesn't exist.
 $apiTokensFilePath = "$PSScriptRoot\ApiTokens.psm1"
 if (Test-Path $apiTokensFilePath)
 {
