@@ -11,11 +11,13 @@ if ($env:AppVeyor)
 [String] $root = Split-Path -Parent (Split-Path -Parent $Script:MyInvocation.MyCommand.Path)
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubLabels.psm1') -Force
 
-$script:gitHubAccountUrl = "https://github.com/KarolKaczmarek"
-$script:accountName = "KarolKaczmarek"
+$script:gitHubAccountUrl = "https://github.com/gipstestaccount"
+$script:accountName = "gipstestaccount"
 $script:repositoryName = "TestRepository"
 $script:repositoryUrl = "$script:gitHubAccountUrl/$script:repositoryName"
 $script:expectedNumberOfLabels = 14
+
+New-GitHubLabels -repositoryName $script:repositoryName -ownerName $script:accountName
 
 Describe 'Getting labels from repository' {
     Context 'When querying for all labels' {
@@ -103,6 +105,8 @@ Describe 'Updating label' {
 
 Describe 'Applying set of labels on repository' {
     $labelName = "TestLabel"
+
+    New-GitHubLabels -repositoryName $script:repositoryName -ownerName $script:accountName
 
     # Add new label
     New-GitHubLabel -repositoryName $script:repositoryName -ownerName $script:accountName -labelName $labelName -labelColor BBBBBB
