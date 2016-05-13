@@ -23,7 +23,7 @@ $issues = Get-GitHubIssuesForRepository -repositoryUrl @('https://github.com/Pow
 Install-Module -Name Pester 
 ```
 
-2) Go to Tests folder and run
+2) Start test pass
 
 ```powershell
 Invoke-Pester
