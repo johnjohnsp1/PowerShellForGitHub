@@ -1,4 +1,4 @@
-# GiPS
+# PowerShellForGitHub
 [![Build status](https://ci.appveyor.com/api/projects/status/x4g36pbltk67l0n5?svg=true)](https://ci.appveyor.com/project/PowerShell/gips)
 
 PowerShell wrapper for GitHub API.
