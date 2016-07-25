@@ -862,7 +862,7 @@ function Get-NextResultPage
     
     if($jsonResult.Headers.Link -eq $null)
     {
-        return $true
+        return $null
     }
 
     $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
