@@ -829,33 +829,55 @@ function Get-GitHubOrganizationRepository
     {
         $query += "&access_token=$gitHubAccessToken"
     }
-        
-    $jsonResult = Invoke-WebRequest $query
-    $repositories = @()
-    foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
-    {
-      $repositories += $repository
-    }
 
-    if($jsonResult.Headers.Link -eq $null)
+    $repositories = @()    
+
+    do 
     {
-        return $repositories
-    }
-    
-    $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
-    $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
-    while($query -notmatch '&page=1')
-    {
-      $jsonResult = Invoke-WebRequest $query
-      foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
-      {
-        $repositories += $repository
-      }
-      $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
-      $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
-    }
+        Write-Host "Querying $query" # TODO
+        $jsonResult = Invoke-WebRequest $query
+        foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
+        {
+            $repositories += $repository
+        }
+        $query = Get-NextResultPage -jsonResult $jsonResult
+    } while ($query -ne $null)
 
     return $repositories
+}
+
+<#
+    .SYNOPSIS Function to get next page with results from query to GitHub API
+
+    .PARAM
+        jsonResult Result from the query to GitHub API
+#>
+function Get-NextResultPage
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        $jsonResult
+    )
+    
+    if($jsonResult.Headers.Link -eq $null)
+    {
+        return $true
+    }
+
+    $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
+    
+    # Get url query for the next page
+    $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
+    if ($query -notmatch '&page=1')
+    {
+        return $query
+    }
+    else
+    {
+        return $null
+    }
 }
 
 <#
