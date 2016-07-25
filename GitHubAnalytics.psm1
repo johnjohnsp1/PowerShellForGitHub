@@ -87,59 +87,63 @@ function Get-GitHubIssuesForRepository
         }
         
         # Obtain issues    
-        $jsonResult = Invoke-WebRequest $query
-        $issues = ConvertFrom-Json -InputObject $jsonResult.content
-        
-        foreach ($issue in $issues)
+        do 
         {
-            # GitHub considers pull request to be an issue, so let's skip pull requests.
-            if ($issue.pull_request -ne $null)
+            $jsonResult = Invoke-WebRequest $query
+            $issues = ConvertFrom-Json -InputObject $jsonResult.content
+            
+            foreach ($issue in $issues)
             {
-                continue
-            }
-
-            # Filter according to createdOnOrAfter
-            $createdDate = Get-Date -Date $issue.created_at
-            if (($createdOnOrAfter -ne $null) -and ($createdDate -lt $createdOnOrAfter))
-            {
-                continue  
-            }
-
-            # Filter according to createdOnOrBefore
-            if (($createdOnOrBefore -ne $null) -and ($createdDate -gt $createdOnOrBefore))
-            {
-                continue  
-            }
-
-            if ($issue.closed_at -ne $null)
-            {
-                # Filter according to closedOnOrAfter
-                $closedDate = Get-Date -Date $issue.closed_at
-                if (($closedOnOrAfter -ne $null) -and ($closedDate -lt $closedOnOrAfter))
-                {
-                    continue  
-                }
-
-                # Filter according to closedOnOrBefore
-                if (($closedOnOrBefore -ne $null) -and ($closedDate -gt $closedOnOrBefore))
-                {
-                    continue  
-                }
-            }
-            else
-            {
-                # If issue isn't closed, but we specified filtering on closedOn, skip it
-                if (($closedOnOrAfter -ne $null) -or ($closedOnOrBefore -ne $null))
+                # GitHub considers pull request to be an issue, so let's skip pull requests.
+                if ($issue.pull_request -ne $null)
                 {
                     continue
                 }
-            }
-            
-            Write-Host "$index. $($issue.html_url) ## Created: $($issue.created_at) ## Closed: $($issue.closed_at)"
-            $index++
 
-            $resultToReturn += $issue
-        }
+                # Filter according to createdOnOrAfter
+                $createdDate = Get-Date -Date $issue.created_at
+                if (($createdOnOrAfter -ne $null) -and ($createdDate -lt $createdOnOrAfter))
+                {
+                    continue  
+                }
+
+                # Filter according to createdOnOrBefore
+                if (($createdOnOrBefore -ne $null) -and ($createdDate -gt $createdOnOrBefore))
+                {
+                    continue  
+                }
+
+                if ($issue.closed_at -ne $null)
+                {
+                    # Filter according to closedOnOrAfter
+                    $closedDate = Get-Date -Date $issue.closed_at
+                    if (($closedOnOrAfter -ne $null) -and ($closedDate -lt $closedOnOrAfter))
+                    {
+                        continue  
+                    }
+
+                    # Filter according to closedOnOrBefore
+                    if (($closedOnOrBefore -ne $null) -and ($closedDate -gt $closedOnOrBefore))
+                    {
+                        continue  
+                    }
+                }
+                else
+                {
+                    # If issue isn't closed, but we specified filtering on closedOn, skip it
+                    if (($closedOnOrAfter -ne $null) -or ($closedOnOrBefore -ne $null))
+                    {
+                        continue
+                    }
+                }
+                
+                Write-Host "$index. $($issue.html_url) ## Created: $($issue.created_at) ## Closed: $($issue.closed_at)"
+                $index++
+
+                $resultToReturn += $issue
+            }
+            $query = Get-NextResultPage -jsonResult $jsonResult
+        } while ($query -ne $null)
     }
 
     return $resultToReturn
