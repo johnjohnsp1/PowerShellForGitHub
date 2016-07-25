@@ -834,7 +834,6 @@ function Get-GitHubOrganizationRepository
 
     do 
     {
-        Write-Host "Querying $query" # TODO
         $jsonResult = Invoke-WebRequest $query
         foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
         {
