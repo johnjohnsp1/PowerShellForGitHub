@@ -367,53 +367,57 @@ function Get-GitHubPullRequestsForRepository
         }
         
         # Obtain pull requests
-        $jsonResult = Invoke-WebRequest $query
-        $pullRequests = ConvertFrom-Json -InputObject $jsonResult.content
-
-        foreach ($pullRequest in $pullRequests)
+        do 
         {
-            # Filter according to createdOnOrAfter
-            $createdDate = Get-Date -Date $pullRequest.created_at
-            if (($createdOnOrAfter -ne $null) -and ($createdDate -lt $createdOnOrAfter))
-            {
-                continue  
-            }
+            $jsonResult = Invoke-WebRequest $query
+            $pullRequests = ConvertFrom-Json -InputObject $jsonResult.content
 
-            # Filter according to createdOnOrBefore
-            if (($createdOnOrBefore -ne $null) -and ($createdDate -gt $createdOnOrBefore))
+            foreach ($pullRequest in $pullRequests)
             {
-                continue  
-            }
-
-            if ($pullRequest.merged_at -ne $null)
-            {
-                # Filter according to mergedOnOrAfter
-                $mergedDate = Get-Date -Date $pullRequest.merged_at
-                if (($mergedOnOrAfter -ne $null) -and ($mergedDate -lt $mergedOnOrAfter))
-                {
-                    continue
-                }
-
-                # Filter according to mergedOnOrBefore
-                if (($mergedOnOrBefore -ne $null) -and ($mergedDate -gt $mergedOnOrBefore))
+                # Filter according to createdOnOrAfter
+                $createdDate = Get-Date -Date $pullRequest.created_at
+                if (($createdOnOrAfter -ne $null) -and ($createdDate -lt $createdOnOrAfter))
                 {
                     continue  
                 }
-            }
-            else
-            {
-                # If issue isn't merged, but we specified filtering on mergedOn, skip it
-                if (($mergedOnOrAfter -ne $null) -or ($mergedOnOrBefore -ne $null))
-                {
-                    continue
-                }
-            }
-            
-            Write-Host "$index. $($pullRequest.html_url) ## Created: $($pullRequest.created_at) ## Merged: $($pullRequest.merged_at)"
-            $index++
 
-            $resultToReturn += $pullRequest
-        }
+                # Filter according to createdOnOrBefore
+                if (($createdOnOrBefore -ne $null) -and ($createdDate -gt $createdOnOrBefore))
+                {
+                    continue  
+                }
+
+                if ($pullRequest.merged_at -ne $null)
+                {
+                    # Filter according to mergedOnOrAfter
+                    $mergedDate = Get-Date -Date $pullRequest.merged_at
+                    if (($mergedOnOrAfter -ne $null) -and ($mergedDate -lt $mergedOnOrAfter))
+                    {
+                        continue
+                    }
+
+                    # Filter according to mergedOnOrBefore
+                    if (($mergedOnOrBefore -ne $null) -and ($mergedDate -gt $mergedOnOrBefore))
+                    {
+                        continue  
+                    }
+                }
+                else
+                {
+                    # If issue isn't merged, but we specified filtering on mergedOn, skip it
+                    if (($mergedOnOrAfter -ne $null) -or ($mergedOnOrBefore -ne $null))
+                    {
+                        continue
+                    }
+                }
+                
+                Write-Host "$index. $($pullRequest.html_url) ## Created: $($pullRequest.created_at) ## Merged: $($pullRequest.merged_at)"
+                $index++
+
+                $resultToReturn += $pullRequest
+            }
+            $query = Get-NextResultPage -jsonResult $jsonResult
+        } while ($query -ne $null) 
     }
 
     return $resultToReturn
@@ -610,19 +614,32 @@ function Get-GitHubRepositoryCollaborators
             $query += "?access_token=$gitHubAccessToken"
         }
         
-        # Obtain all issues    
-        $jsonResult = Invoke-WebRequest $query
-        $collaborators = ConvertFrom-Json -InputObject $jsonResult.content
+        # Obtain all issues
+        do 
+        {
+            try
+            {
+                $jsonResult = Invoke-WebRequest $query
+                $collaborators = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query: $query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
+            }
+            catch {
+                Write-Error "Failed to execute query: $query with exception: $($_.Exception)"
+                return $null
+            }
 
-        foreach ($collaborator in $collaborators)
-        {          
-            Write-Host "$index. $($collaborator.login)"
-            $index++
-
-            $resultToReturn += $collaborator
-        }
+            foreach ($collaborator in $collaborators)
+            {          
+                Write-Host "$index. $($collaborator.login)"
+                $index++
+                $resultToReturn += $collaborator
+            }
+            $query = Get-NextResultPage -jsonResult $jsonResult
+        } while ($query -ne $null)
     }
-
     return $resultToReturn
 }
 
