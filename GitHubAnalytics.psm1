@@ -89,9 +89,20 @@ function Get-GitHubIssuesForRepository
         # Obtain issues    
         do 
         {
-            $jsonResult = Invoke-WebRequest $query
-            $issues = ConvertFrom-Json -InputObject $jsonResult.content
-            
+            try
+            {
+                $jsonResult = Invoke-WebRequest $query
+                $issues = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query: $query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
+            }
+            catch {
+                Write-Error "Failed to execute query: $query with exception: $($_.Exception)"
+                return $null
+            }
+
             foreach ($issue in $issues)
             {
                 # GitHub considers pull request to be an issue, so let's skip pull requests.
@@ -369,8 +380,19 @@ function Get-GitHubPullRequestsForRepository
         # Obtain pull requests
         do 
         {
-            $jsonResult = Invoke-WebRequest $query
-            $pullRequests = ConvertFrom-Json -InputObject $jsonResult.content
+            try
+            {
+                $jsonResult = Invoke-WebRequest $query
+                $pullRequests = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query: $query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
+            }
+            catch {
+                Write-Error "Failed to execute query: $query with exception: $($_.Exception)"
+                return $null
+            }
 
             foreach ($pullRequest in $pullRequests)
             {
@@ -849,21 +871,20 @@ function Get-GitHubOrganizationRepository
     if (![string]::IsNullOrEmpty($gitHubAccessToken))
     {
         $query += "&access_token=$gitHubAccessToken"
-    }
-
-    $repositories = @()    
+    }    
 
     do 
     {
         $jsonResult = Invoke-WebRequest $query
-        foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
+        $repositories = (ConvertFrom-Json -InputObject $jsonResult.content)
+        foreach($repository in $repositories)
         {
-            $repositories += $repository
+            $resultToReturn += $repository
         }
         $query = Get-NextResultPage -jsonResult $jsonResult
     } while ($query -ne $null)
 
-    return $repositories
+    return $resultToReturn
 }
 
 <#
