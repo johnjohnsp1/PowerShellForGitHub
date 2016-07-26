@@ -40,7 +40,7 @@ $script:gitHubApiReposUrl = "https://api.github.com/repos"
         Get-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName Powershell -labelName TestLabel
         Get-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName Powershell
 #>
-function Get-GitHubLabel 
+function Get-GitHubLabel
 {
     param(
         [Parameter(Mandatory=$true)]
@@ -87,15 +87,25 @@ function Get-GitHubLabel
         }
         else 
         {
-            $url = "$script:gitHubApiReposUrl/{0}/{1}/labels/{2}" -f $ownerName, $repositoryName, $labelName
+            $query = "$script:gitHubApiReposUrl/{0}/{1}/labels/{2}" -f $ownerName, $repositoryName, $labelName
             Write-Host "Getting label $labelName for repository $repositoryName"
-            $result = Invoke-WebRequest $url -Method Get -Headers $headers
-            
-            if ($result.StatusCode -ne 200) 
+
+            try
             {
-                Write-Error "Couldn't obtain label $labelName. Result: $result"
-                return
+                $jsonResult = Invoke-WebRequest $query -Method Get -Headers $headers
+                $label = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
             }
+            catch {
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
+                return $null
+            }
+  
+            Write-Verbose "$index. $($label.name)"
+            $resultToReturn = $label
         }
         
         return $resultToReturn
