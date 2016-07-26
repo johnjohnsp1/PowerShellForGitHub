@@ -148,7 +148,7 @@ function Get-GitHubIssuesForRepository
                     }
                 }
                 
-                Write-Host "$index. $($issue.html_url) ## Created: $($issue.created_at) ## Closed: $($issue.closed_at)"
+                Write-Verbose "$index. $($issue.html_url) ## Created: $($issue.created_at) ## Closed: $($issue.closed_at)"
                 $index++
 
                 $resultToReturn += $issue
@@ -433,7 +433,7 @@ function Get-GitHubPullRequestsForRepository
                     }
                 }
                 
-                Write-Host "$index. $($pullRequest.html_url) ## Created: $($pullRequest.created_at) ## Merged: $($pullRequest.merged_at)"
+                Write-Verbose "$index. $($pullRequest.html_url) ## Created: $($pullRequest.created_at) ## Merged: $($pullRequest.merged_at)"
                 $index++
 
                 $resultToReturn += $pullRequest
@@ -655,7 +655,7 @@ function Get-GitHubRepositoryCollaborators
 
             foreach ($collaborator in $collaborators)
             {          
-                Write-Host "$index. $($collaborator.login)"
+                Write-Verbose "$index. $($collaborator.login)"
                 $index++
                 $resultToReturn += $collaborator
             }
@@ -716,7 +716,7 @@ function Get-GitHubRepositoryContributors
 
             foreach ($contributor in $contributors)
             {          
-                Write-Host "$index. $($contributor.author.login). Commits: $($contributor.total)"
+                Write-Verbose "$index. $($contributor.author.login). Commits: $($contributor.total)"
                 $index++
                 $resultToReturn += $contributor
             }
