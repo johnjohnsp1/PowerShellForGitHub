@@ -18,9 +18,8 @@ Please scroll down to the "Examples" section for details on what operations are 
 
  ```powershell
 Import-Module .\GitHubAnalytics.psm1
-$issues = Get-GitHubIssuesForRepository -repositoryUrl @('https://github.com/PowerShell/GitHubKit')
+$issues = Get-GitHubIssuesForRepository -repositoryUrl @('https://github.com/PowerShell/DscResources')
 ```
-
 
 ## Runnig tests
 1) Install [Pester](http://www.powershellgallery.com/packages/Pester/3.4.0) 
@@ -34,6 +33,9 @@ Install-Module -Name Pester
 ```powershell
 Invoke-Pester
 ```
+
+Make sure ApiTokens.psm1 exists and contains $global:gitHubApiToken with your GitHub key.
+Please keep in mind some tests may fail on your machine, as they test private items (e.g. secret teams) which your key won't have access to.
 
 ## Contributing
 
