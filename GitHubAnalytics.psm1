@@ -808,7 +808,7 @@ function Get-GitHubTeams
     )
     $resultToReturn = @()
     $index = 0
-    
+
     $query = "$script:gitHubApiUrl/orgs/$organizationName/teams"
         
     if (![string]::IsNullOrEmpty($gitHubAccessToken))
@@ -869,6 +869,8 @@ function Get-GitHubTeamMembers
         [String] $teamName,
         $gitHubAccessToken = $script:gitHubToken
     )
+    $resultToReturn = @()
+    $index = 0
 
     $teams = Get-GitHubTeams -organizationName $organizationName
     $team = $teams | ? {$_.name -eq $teamName}
@@ -879,22 +881,39 @@ function Get-GitHubTeamMembers
         return
     }
 
-    $query = "$script:gitHubApiUrl/teams/$($team.id)/members?per_page=$maxPageSize"
+    $query = "$script:gitHubApiUrl/teams/$($team.id)/members"
         
     if (![string]::IsNullOrEmpty($gitHubAccessToken))
     {
-        $query += "&access_token=$gitHubAccessToken"
+        $query += "?access_token=$gitHubAccessToken"
     }
-    
-    $jsonResult = Invoke-WebRequest $query
-    $members = ConvertFrom-Json -InputObject $jsonResult.content
 
-    if ($members.Count -eq $maxPageSize)
+    do 
     {
-        Write-Warning "We hit the limit of $maxPageSize per page. This function currently does not support pagination."
-    }
+        try
+        {
+            $jsonResult = Invoke-WebRequest $query
+            $members = ConvertFrom-Json -InputObject $jsonResult.content
+        }    
+        catch [System.Net.WebException] {
+            Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+            return $null
+        }
+        catch {
+            Write-Error "Failed to execute query with exception: $($_.Exception)"
+            return $null
+        }
 
-    return $members
+        foreach ($member in $members)
+        {          
+            Write-Verbose "$index. $($member.login)"
+            $index++
+            $resultToReturn += $member
+        }
+        $query = Get-NextResultPage -jsonResult $jsonResult
+    } while ($query -ne $null)
+
+    return $resultToReturn
 }
 
 <#
