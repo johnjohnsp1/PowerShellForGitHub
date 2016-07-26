@@ -95,11 +95,11 @@ function Get-GitHubIssuesForRepository
                 $issues = ConvertFrom-Json -InputObject $jsonResult.content
             }    
             catch [System.Net.WebException] {
-                Write-Error "Failed to execute query: $query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
                 return $null
             }
             catch {
-                Write-Error "Failed to execute query: $query with exception: $($_.Exception)"
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
                 return $null
             }
 
@@ -386,11 +386,11 @@ function Get-GitHubPullRequestsForRepository
                 $pullRequests = ConvertFrom-Json -InputObject $jsonResult.content
             }    
             catch [System.Net.WebException] {
-                Write-Error "Failed to execute query: $query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
                 return $null
             }
             catch {
-                Write-Error "Failed to execute query: $query with exception: $($_.Exception)"
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
                 return $null
             }
 
@@ -645,11 +645,11 @@ function Get-GitHubRepositoryCollaborators
                 $collaborators = ConvertFrom-Json -InputObject $jsonResult.content
             }    
             catch [System.Net.WebException] {
-                Write-Error "Failed to execute query: $query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
                 return $null
             }
             catch {
-                Write-Error "Failed to execute query: $query with exception: $($_.Exception)"
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
                 return $null
             }
 
@@ -873,10 +873,22 @@ function Get-GitHubOrganizationRepository
         $query += "&access_token=$gitHubAccessToken"
     }    
 
-    do 
+    do
     {
-        $jsonResult = Invoke-WebRequest $query
-        $repositories = (ConvertFrom-Json -InputObject $jsonResult.content)
+        try
+        {
+            $jsonResult = Invoke-WebRequest $query
+            $repositories = (ConvertFrom-Json -InputObject $jsonResult.content)
+        }    
+        catch [System.Net.WebException] {
+            Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+            return $null
+        }
+        catch {
+            Write-Error "Failed to execute query with exception: $($_.Exception)"
+            return $null
+        }
+
         foreach($repository in $repositories)
         {
             $resultToReturn += $repository
