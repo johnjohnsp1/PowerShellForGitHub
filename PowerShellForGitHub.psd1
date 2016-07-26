@@ -18,7 +18,7 @@ ModuleVersion = '0.1.0'
 GUID = '9e8dfd44-f782-445a-883c-70614f71519c'
 
 # Author of this module
-Author = 'Karol Kaczmarek'
+Author = 'Microsoft Corporation'
 
 # Company or vendor of this module
 CompanyName = 'Microsoft Corporation'
