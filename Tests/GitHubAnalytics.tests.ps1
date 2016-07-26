@@ -8,6 +8,11 @@
 if ($env:AppVeyor)
 {
     $global:gitHubApiToken = $env:token
+    $message = 'This run is executed in the AppVeyor environment. 
+GitHubApiToken won''t be decrypted in PR runs causing some tests to fail.
+403 errors possible due to GitHub hourly limit for unauthenticated queries.
+Define $global:gitHubApiToken manually and run tests on your machine first.'
+    Write-Host $message -BackgroundColor Yellow -ForegroundColor Black
 }
 
 $apiTokensFilePath = "$root\ApiTokens.psm1"
@@ -27,6 +32,10 @@ if ($global:gitHubApiToken -eq $null)
     Write-Host "GitHubApiToken not defined, some of the tests will be skipped. `n403 errors possible due to GitHub hourly limit for unauthenticated queries." -BackgroundColor Yellow -ForegroundColor Black
     $script:tokenExists = $false
 }
+else
+{
+    Write-Host "GitHubApiToken has been defined in tests"
+}
 
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubAnalytics.psm1') -Force
 
@@ -41,7 +50,7 @@ $script:repositoryUrl2 = "$script:gitHubAccountUrl/$script:repository2Name"
 
 Describe 'Obtaininig issues for repository' {
     Context 'When no addional conditions specified' {
-        $issues = Get-GitHubIssuesForRepository -repositoryUrl @($repositoryUrl)
+        $issues = Get-GitHubIssueForRepository -repositoryUrl @($repositoryUrl)
 
         It 'Should return expected number of issues' {
             @($issues).Count | Should be 3
@@ -49,7 +58,7 @@ Describe 'Obtaininig issues for repository' {
     }
     
     Context 'When time range specified' {
-        $issues = Get-GitHubIssuesForRepository -repositoryUrl @($repositoryUrl) -createdOnOrAfter '2016-05-06' -createdOnOrBefore '2016-05-08'
+        $issues = Get-GitHubIssueForRepository -repositoryUrl @($repositoryUrl) -createdOnOrAfter '2016-05-06' -createdOnOrBefore '2016-05-08'
 
         It 'Should return expected number of issues' {
             @($issues).Count | Should be 3
@@ -57,7 +66,7 @@ Describe 'Obtaininig issues for repository' {
     }
     
     Context 'When state and time range specified' {
-        $issues = Get-GitHubIssuesForRepository -repositoryUrl @($repositoryUrl) -createdOnOrAfter '2016-04-01' -state closed
+        $issues = Get-GitHubIssueForRepository -repositoryUrl @($repositoryUrl) -createdOnOrAfter '2016-04-01' -state closed
 
         It 'Should return expected number of issues' {
             @($issues).Count | Should be 2
@@ -67,7 +76,7 @@ Describe 'Obtaininig issues for repository' {
 
 Describe 'Obtaininig repository with biggest number of issues' {
     Context 'When no addional conditions specified' {
-        $issues = Get-GitHubTopIssuesRepository -repositoryUrl @($script:repositoryUrl,$script:repositoryUrl2)
+        $issues = Get-GitHubTopIssueRepository -repositoryUrl @($script:repositoryUrl,$script:repositoryUrl2)
 
         It 'Should return expected number of issues for each repository' {
             @($issues[0].Value) | Should be 3
@@ -83,7 +92,7 @@ Describe 'Obtaininig repository with biggest number of issues' {
 
 Describe 'Obtaininig pull requests for repository' {
     Context 'When no addional conditions specified' {
-        $pullRequests = Get-GitHubPullRequestsForRepository -repositoryUrl @($script:repositoryUrl)
+        $pullRequests = Get-GitHubPullRequestForRepository -repositoryUrl @($script:repositoryUrl)
 
         It 'Should return expected number of PRs' {
             @($pullRequests).Count | Should be 2
@@ -91,7 +100,7 @@ Describe 'Obtaininig pull requests for repository' {
     }
     
     Context 'When state and time range specified' {
-        $pullRequests = Get-GitHubPullRequestsForRepository `
+        $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl @($script:repositoryUrl) `
             -state closed -mergedOnOrAfter 2016-04-10 -mergedOnOrBefore 2016-05-07
 
@@ -103,7 +112,7 @@ Describe 'Obtaininig pull requests for repository' {
 
 Describe 'Obtaininig repository with biggest number of pull requests' {
     Context 'When no addional conditions specified' {
-        $pullRequests = Get-GitHubTopPullRequestsRepository -repositoryUrl @($script:repositoryUrl,$script:repositoryUrl2)
+        $pullRequests = Get-GitHubTopPullRequestRepository -repositoryUrl @($script:repositoryUrl,$script:repositoryUrl2)
 
         It 'Should return expected number of pull requests for each repository' {
             @($pullRequests[0].Value) | Should be 2
@@ -117,7 +126,7 @@ Describe 'Obtaininig repository with biggest number of pull requests' {
     }
     
     Context 'When state and time range specified' {
-        $pullRequests = Get-GitHubTopPullRequestsRepository -repositoryUrl @($script:repositoryUrl,$script:repositoryUrl2) -state closed -mergedOnOrAfter 2015-04-20
+        $pullRequests = Get-GitHubTopPullRequestRepository -repositoryUrl @($script:repositoryUrl,$script:repositoryUrl2) -state closed -mergedOnOrAfter 2015-04-20
         
         It 'Should return expected number of pull requests for each repository' {
             @($pullRequests[0].Value) | Should be 3
@@ -134,7 +143,7 @@ Describe 'Obtaininig repository with biggest number of pull requests' {
 if ($script:tokenExists)
 {
     Describe 'Obtaininig collaborators for repository' {
-        $collaborators = Get-GitHubRepositoryCollaborators -repositoryUrl @($script:repositoryUrl)
+        $collaborators = Get-GitHubRepositoryCollaborator -repositoryUrl @($script:repositoryUrl)
 
         It 'Should return expected number of collaborators' {
             @($collaborators).Count | Should be 1
@@ -143,7 +152,7 @@ if ($script:tokenExists)
 }
 
 Describe 'Obtaininig contributors for repository' {
-    $contributors = Get-GitHubRepositoryContributors -repositoryUrl @($script:repositoryUrl)
+    $contributors = Get-GitHubRepositoryContributor -repositoryUrl @($script:repositoryUrl)
 
     It 'Should return expected number of contributors' {
         @($contributors).Count | Should be 1
@@ -153,7 +162,7 @@ Describe 'Obtaininig contributors for repository' {
 if ($script:tokenExists)
 {
     Describe 'Obtaininig organization members' {
-        $members = Get-GitHubOrganizationMembers -organizationName $script:organizationName
+        $members = Get-GitHubOrganizationMember -organizationName $script:organizationName
 
         It 'Should return expected number of organization members' {
             @($members).Count | Should be 1
@@ -161,7 +170,7 @@ if ($script:tokenExists)
     }
 
     Describe 'Obtaininig organization teams' {
-        $teams = Get-GitHubTeams -organizationName $script:organizationName
+        $teams = Get-GitHubTeam -organizationName $script:organizationName
 
         It 'Should return expected number of organization teams' {
             @($teams).Count | Should be 2
@@ -169,7 +178,7 @@ if ($script:tokenExists)
     }
 
     Describe 'Obtaininig organization team members' {
-        $members = Get-GitHubTeamMembers -organizationName $script:organizationName -teamName $script:organizationTeamName
+        $members = Get-GitHubTeamMember -organizationName $script:organizationName -teamName $script:organizationTeamName
 
         It 'Should return expected number of organization team members' {
             @($members).Count | Should be 1
@@ -186,8 +195,8 @@ Describe 'Getting repositories from organization' {
 }
 
 Describe 'Getting unique contributors from contributors array' {
-    $contributors = Get-GitHubRepositoryContributors -repositoryUrl @($script:repositoryUrl)
-    $uniqueContributors = Get-GitHubRepositoryUniqueContributors -contributors $contributors
+    $contributors = Get-GitHubRepositoryContributor -repositoryUrl @($script:repositoryUrl)
+    $uniqueContributors = Get-GitHubRepositoryUniqueContributor -contributors $contributors
 
     It 'Should return expected number of unique contributors' {
         @($uniqueContributors).Count | Should be 1

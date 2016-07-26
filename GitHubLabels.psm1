@@ -13,7 +13,7 @@ else
 {
     Write-Host "$apiTokensFilePath does not exist, skipping import"
     Write-Host @'
-This module should define $global:gitHubApiToken with your GitHub API access token. Create this file it if it doesn't exist.
+This module should define $global:gitHubApiToken with your GitHub API access token in ApiTokens.psm1. Create this file if it doesn't exist.
 You can simply rename ApiTokensTemplate.psm1 to ApiTokens.psm1 and update value of $global:gitHubApiToken.
 You can get GitHub token from https://github.com/settings/tokens
 If you don't provide it, you can still use this module, but you will be limited to 60 queries per hour.
@@ -40,7 +40,7 @@ $script:gitHubApiReposUrl = "https://api.github.com/repos"
         Get-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName Powershell -labelName TestLabel
         Get-GitHubLabel -repositoryName DesiredStateConfiguration -ownerName Powershell
 #>
-function Get-GitHubLabel 
+function Get-GitHubLabel
 {
     param(
         [Parameter(Mandatory=$true)]
@@ -51,37 +51,64 @@ function Get-GitHubLabel
         [string]$gitHubAccessToken = $script:gitHubToken
         )
         
+        $resultToReturn = @()
+        $index = 0
         $headers = @{"Authorization"="token $gitHubAccessToken"}
         
         if ($labelName -eq "")
         {
-            $url = "$script:gitHubApiReposUrl/{0}/{1}/labels" -f $ownerName, $repositoryName    
+            $query = "$script:gitHubApiReposUrl/{0}/{1}/labels" -f $ownerName, $repositoryName    
             Write-Host "Getting all labels for repository $repositoryName"
-            $result = Invoke-WebRequest $url -Method Get -Headers $headers
-            
-            if ($result.StatusCode -ne 200) 
+
+            do 
             {
-                Write-Error "Couldn't obtain labels. Result: $result"
-                return
-            } 
-            Write-Host "Got all labels"
+                try
+                {
+                    $jsonResult = Invoke-WebRequest $query -Method Get -Headers $headers
+                    $labels = ConvertFrom-Json -InputObject $jsonResult.content
+                }    
+                catch [System.Net.WebException] {
+                    Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                    return $null
+                }
+                catch {
+                    Write-Error "Failed to execute query with exception: $($_.Exception)"
+                    return $null
+                }
+
+                foreach ($label in $labels)
+                {          
+                    Write-Verbose "$index. $($label.name)"
+                    $index++
+                    $resultToReturn += $label
+                }
+                $query = Get-NextResultPage -jsonResult $jsonResult
+            } while ($query -ne $null)
         }
         else 
         {
-            $url = "$script:gitHubApiReposUrl/{0}/{1}/labels/{2}" -f $ownerName, $repositoryName, $labelName
+            $query = "$script:gitHubApiReposUrl/{0}/{1}/labels/{2}" -f $ownerName, $repositoryName, $labelName
             Write-Host "Getting label $labelName for repository $repositoryName"
-            $result = Invoke-WebRequest $url -Method Get -Headers $headers
-            
-            if ($result.StatusCode -ne 200) 
+
+            try
             {
-                Write-Error "Couldn't obtain label $labelName. Result: $result"
-                return
-            } 
-            Write-Host "Got label $labelName"
+                $jsonResult = Invoke-WebRequest $query -Method Get -Headers $headers
+                $label = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
+            }
+            catch {
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
+                return $null
+            }
+  
+            Write-Verbose "$index. $($label.name)"
+            $resultToReturn = $label
         }
         
-        $labels = ConvertFrom-Json -InputObject $result.content
-        return $labels
+        return $resultToReturn
 }
 
 <#
@@ -338,5 +365,40 @@ $labelJson = @"
             # Remove label if it exists but is not on desired label list
             Remove-GitHubLabel -repositoryName $repositoryName -ownerName $ownerName -labelName $label -gitHubAccessToken $gitHubAccessToken
         }
+    }
+}
+
+<#
+    .SYNOPSIS Function to get next page with results from query to GitHub API
+
+    .PARAM
+        jsonResult Result from the query to GitHub API
+#>
+function Get-NextResultPage
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        $jsonResult
+    )
+    
+    if($jsonResult.Headers.Link -eq $null)
+    {
+        return $null
+    }
+
+    $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
+    
+    # Get url query for the next page
+    $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
+    if ($query -notmatch 'page=1')
+    {
+        
+        return $query
+    }
+    else
+    {
+        return $null
     }
 }

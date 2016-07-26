@@ -13,7 +13,7 @@ else
 {
     Write-Host "$apiTokensFilePath does not exist, skipping import"
     Write-Host @'
-This module should define $global:gitHubApiToken with your GitHub API access token. Create this file it if it doesn't exist.
+This module should define $global:gitHubApiToken with your GitHub API access token in ApiTokens.psm1. Create this file if it doesn't exist.
 You can simply rename ApiTokensTemplate.psm1 to ApiTokens.psm1 and update value of $global:gitHubApiToken.
 You can get GitHub token from https://github.com/settings/tokens
 If you don't provide it, you can still use this module, but you will be limited to 60 queries per hour.
@@ -24,7 +24,6 @@ $script:gitHubToken = $global:gitHubApiToken
 $script:gitHubApiUrl = "https://api.github.com"
 $script:gitHubApiReposUrl = "https://api.github.com/repos"
 $script:gitHubApiOrgsUrl = "https://api.github.com/orgs"
-$script:maxPageSize = 100
 
 <#
     .SYNOPSIS Function which gets list of issues for given repository
@@ -45,13 +44,13 @@ $script:maxPageSize = 100
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        $issues = Get-GitHubIssuesForRepository -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration')
+        $issues = Get-GitHubIssueForRepository -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration')
     .EXAMPLE
-        $issues = Get-GitHubIssuesForRepository `
+        $issues = Get-GitHubIssueForRepository `
             -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration', "https://github.com/PowerShell/xWindowsUpdate" ) `
             -createdOnOrAfter '2015-04-20'
 #>
-function Get-GitHubIssuesForRepository
+function Get-GitHubIssueForRepository
 {
     param
     (
@@ -87,59 +86,74 @@ function Get-GitHubIssuesForRepository
         }
         
         # Obtain issues    
-        $jsonResult = Invoke-WebRequest $query
-        $issues = ConvertFrom-Json -InputObject $jsonResult.content
-        
-        foreach ($issue in $issues)
+        do 
         {
-            # GitHub considers pull request to be an issue, so let's skip pull requests.
-            if ($issue.pull_request -ne $null)
+            try
             {
-                continue
+                $jsonResult = Invoke-WebRequest $query
+                $issues = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
+            }
+            catch {
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
+                return $null
             }
 
-            # Filter according to createdOnOrAfter
-            $createdDate = Get-Date -Date $issue.created_at
-            if (($createdOnOrAfter -ne $null) -and ($createdDate -lt $createdOnOrAfter))
+            foreach ($issue in $issues)
             {
-                continue  
-            }
-
-            # Filter according to createdOnOrBefore
-            if (($createdOnOrBefore -ne $null) -and ($createdDate -gt $createdOnOrBefore))
-            {
-                continue  
-            }
-
-            if ($issue.closed_at -ne $null)
-            {
-                # Filter according to closedOnOrAfter
-                $closedDate = Get-Date -Date $issue.closed_at
-                if (($closedOnOrAfter -ne $null) -and ($closedDate -lt $closedOnOrAfter))
-                {
-                    continue  
-                }
-
-                # Filter according to closedOnOrBefore
-                if (($closedOnOrBefore -ne $null) -and ($closedDate -gt $closedOnOrBefore))
-                {
-                    continue  
-                }
-            }
-            else
-            {
-                # If issue isn't closed, but we specified filtering on closedOn, skip it
-                if (($closedOnOrAfter -ne $null) -or ($closedOnOrBefore -ne $null))
+                # GitHub considers pull request to be an issue, so let's skip pull requests.
+                if ($issue.pull_request -ne $null)
                 {
                     continue
                 }
-            }
-            
-            Write-Host "$index. $($issue.html_url) ## Created: $($issue.created_at) ## Closed: $($issue.closed_at)"
-            $index++
 
-            $resultToReturn += $issue
-        }
+                # Filter according to createdOnOrAfter
+                $createdDate = Get-Date -Date $issue.created_at
+                if (($createdOnOrAfter -ne $null) -and ($createdDate -lt $createdOnOrAfter))
+                {
+                    continue  
+                }
+
+                # Filter according to createdOnOrBefore
+                if (($createdOnOrBefore -ne $null) -and ($createdDate -gt $createdOnOrBefore))
+                {
+                    continue  
+                }
+
+                if ($issue.closed_at -ne $null)
+                {
+                    # Filter according to closedOnOrAfter
+                    $closedDate = Get-Date -Date $issue.closed_at
+                    if (($closedOnOrAfter -ne $null) -and ($closedDate -lt $closedOnOrAfter))
+                    {
+                        continue  
+                    }
+
+                    # Filter according to closedOnOrBefore
+                    if (($closedOnOrBefore -ne $null) -and ($closedDate -gt $closedOnOrBefore))
+                    {
+                        continue  
+                    }
+                }
+                else
+                {
+                    # If issue isn't closed, but we specified filtering on closedOn, skip it
+                    if (($closedOnOrAfter -ne $null) -or ($closedOnOrBefore -ne $null))
+                    {
+                        continue
+                    }
+                }
+                
+                Write-Verbose "$index. $($issue.html_url) ## Created: $($issue.created_at) ## Closed: $($issue.closed_at)"
+                $index++
+
+                $resultToReturn += $issue
+            }
+            $query = Get-NextResultPage -jsonResult $jsonResult
+        } while ($query -ne $null)
     }
 
     return $resultToReturn
@@ -158,10 +172,10 @@ function Get-GitHubIssuesForRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        Get-GitHubWeeklyIssuesForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xactivedirectory') -datatype closed
+        Get-GitHubWeeklyIssueForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xactivedirectory') -datatype closed
 
 #>
-function Get-GitHubWeeklyIssuesForRepository
+function Get-GitHubWeeklyIssueForRepository
 {
     param
     (
@@ -175,7 +189,7 @@ function Get-GitHubWeeklyIssuesForRepository
         $gitHubAccessToken = $script:gitHubToken
     )
 
-    $weekDates = Get-WeekDates -numberOfWeeks $numberOfWeeks
+    $weekDates = Get-WeekDate -numberOfWeeks $numberOfWeeks
     $endOfWeek = Get-Date
     $results = @()
     $totalIssues = 0
@@ -188,12 +202,12 @@ function Get-GitHubWeeklyIssuesForRepository
 
         if ($dataType -eq "closed")
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repositoryUrl -state 'all' -closedOnOrAfter $week -closedOnOrBefore $endOfWeek    
         }
         elseif ($dataType -eq "created")
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repositoryUrl -state 'all' -createdOnOrAfter $week -createdOnOrBefore $endOfWeek
         }
         
@@ -232,10 +246,10 @@ function Get-GitHubWeeklyIssuesForRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        Get-GitHubTopIssuesRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xCertificate', 'https://github.com/powershell/xwebadministration') -state open
+        Get-GitHubTopIssueRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xCertificate', 'https://github.com/powershell/xwebadministration') -state open
 
 #>
-function Get-GitHubTopIssuesRepository
+function Get-GitHubTopIssueRepository
 {
     param
     (
@@ -260,25 +274,25 @@ function Get-GitHubTopIssuesRepository
     {
         if (($closedOnOrAfter -ne $null) -and ($createdOnOrAfter -ne $null))
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repository `
             -state $state -closedOnOrAfter $closedOnOrAfter -createdOnOrAfter $createdOnOrAfter
         }
         elseif (($closedOnOrAfter -ne $null) -and ($createdOnOrAfter -eq $null))
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repository `
             -state $state -closedOnOrAfter $closedOnOrAfter
         }
         elseif (($closedOnOrAfter -eq $null) -and ($createdOnOrAfter -ne $null))
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repository `
             -state $state -createdOnOrAfter $createdOnOrAfter
         }
         elseif (($closedOnOrAfter -eq $null) -and ($createdOnOrAfter -eq $null))
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repository `
             -state $state
         }
@@ -320,14 +334,14 @@ function Get-GitHubTopIssuesRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        $pullRequests = Get-GitHubPullRequestsForRepository -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration')
+        $pullRequests = Get-GitHubPullRequestForRepository -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration')
     .EXAMPLE
-        $pullRequests = Get-GitHubPullRequestsForRepository `
+        $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration', 'https://github.com/PowerShell/xWebAdministration') `
             -state closed -mergedOnOrAfter 2015-02-13 -mergedOnOrBefore 2015-06-17
 
 #>
-function Get-GitHubPullRequestsForRepository
+function Get-GitHubPullRequestForRepository
 {
     param 
     (
@@ -363,53 +377,68 @@ function Get-GitHubPullRequestsForRepository
         }
         
         # Obtain pull requests
-        $jsonResult = Invoke-WebRequest $query
-        $pullRequests = ConvertFrom-Json -InputObject $jsonResult.content
-
-        foreach ($pullRequest in $pullRequests)
+        do 
         {
-            # Filter according to createdOnOrAfter
-            $createdDate = Get-Date -Date $pullRequest.created_at
-            if (($createdOnOrAfter -ne $null) -and ($createdDate -lt $createdOnOrAfter))
+            try
             {
-                continue  
+                $jsonResult = Invoke-WebRequest $query
+                $pullRequests = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
+            }
+            catch {
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
+                return $null
             }
 
-            # Filter according to createdOnOrBefore
-            if (($createdOnOrBefore -ne $null) -and ($createdDate -gt $createdOnOrBefore))
+            foreach ($pullRequest in $pullRequests)
             {
-                continue  
-            }
-
-            if ($pullRequest.merged_at -ne $null)
-            {
-                # Filter according to mergedOnOrAfter
-                $mergedDate = Get-Date -Date $pullRequest.merged_at
-                if (($mergedOnOrAfter -ne $null) -and ($mergedDate -lt $mergedOnOrAfter))
-                {
-                    continue
-                }
-
-                # Filter according to mergedOnOrBefore
-                if (($mergedOnOrBefore -ne $null) -and ($mergedDate -gt $mergedOnOrBefore))
+                # Filter according to createdOnOrAfter
+                $createdDate = Get-Date -Date $pullRequest.created_at
+                if (($createdOnOrAfter -ne $null) -and ($createdDate -lt $createdOnOrAfter))
                 {
                     continue  
                 }
-            }
-            else
-            {
-                # If issue isn't merged, but we specified filtering on mergedOn, skip it
-                if (($mergedOnOrAfter -ne $null) -or ($mergedOnOrBefore -ne $null))
-                {
-                    continue
-                }
-            }
-            
-            Write-Host "$index. $($pullRequest.html_url) ## Created: $($pullRequest.created_at) ## Merged: $($pullRequest.merged_at)"
-            $index++
 
-            $resultToReturn += $pullRequest
-        }
+                # Filter according to createdOnOrBefore
+                if (($createdOnOrBefore -ne $null) -and ($createdDate -gt $createdOnOrBefore))
+                {
+                    continue  
+                }
+
+                if ($pullRequest.merged_at -ne $null)
+                {
+                    # Filter according to mergedOnOrAfter
+                    $mergedDate = Get-Date -Date $pullRequest.merged_at
+                    if (($mergedOnOrAfter -ne $null) -and ($mergedDate -lt $mergedOnOrAfter))
+                    {
+                        continue
+                    }
+
+                    # Filter according to mergedOnOrBefore
+                    if (($mergedOnOrBefore -ne $null) -and ($mergedDate -gt $mergedOnOrBefore))
+                    {
+                        continue  
+                    }
+                }
+                else
+                {
+                    # If issue isn't merged, but we specified filtering on mergedOn, skip it
+                    if (($mergedOnOrAfter -ne $null) -or ($mergedOnOrBefore -ne $null))
+                    {
+                        continue
+                    }
+                }
+                
+                Write-Verbose "$index. $($pullRequest.html_url) ## Created: $($pullRequest.created_at) ## Merged: $($pullRequest.merged_at)"
+                $index++
+
+                $resultToReturn += $pullRequest
+            }
+            $query = Get-NextResultPage -jsonResult $jsonResult
+        } while ($query -ne $null) 
     }
 
     return $resultToReturn
@@ -428,10 +457,10 @@ function Get-GitHubPullRequestsForRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        Get-GitHubWeeklyPullRequestsForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xwebadministration') -datatype merged
+        Get-GitHubWeeklyPullRequestForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xwebadministration') -datatype merged
 
 #>
-function Get-GitHubWeeklyPullRequestsForRepository
+function Get-GitHubWeeklyPullRequestForRepository
 {
     param
     (
@@ -445,7 +474,7 @@ function Get-GitHubWeeklyPullRequestsForRepository
         $gitHubAccessToken = $script:gitHubToken
     )
     
-    $weekDates = Get-WeekDates -numberOfWeeks $numberOfWeeks
+    $weekDates = Get-WeekDate -numberOfWeeks $numberOfWeeks
     $endOfWeek = Get-Date
     $results = @()
     $totalPullRequests = 0
@@ -458,13 +487,13 @@ function Get-GitHubWeeklyPullRequestsForRepository
 
         if ($dataType -eq "merged")
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repositoryUrl `
             -state 'all' -mergedOnOrAfter $week -mergedOnOrBefore $endOfWeek
         }
         elseif ($dataType -eq "created")
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repositoryUrl `
             -state 'all' -createdOnOrAfter $week -createdOnOrBefore $endOfWeek
         }
@@ -505,10 +534,10 @@ function Get-GitHubWeeklyPullRequestsForRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        Get-GitHubTopPullRequestsRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xwebadministration') -state closed -mergedOnOrAfter 2015-04-20
+        Get-GitHubTopPullRequestRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xwebadministration') -state closed -mergedOnOrAfter 2015-04-20
 
 #>
-function Get-GitHubTopPullRequestsRepository
+function Get-GitHubTopPullRequestRepository
 {
     param
     (
@@ -533,25 +562,25 @@ function Get-GitHubTopPullRequestsRepository
     {
         if (($mergedOnOrAfter -ne $null) -and ($createdOnOrAfter -ne $null))
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repository `
             -state $state -mergedOnOrAfter $mergedOnOrAfter -createdOnOrAfter $createdOnOrAfter
         }
         elseif (($mergedOnOrAfter -ne $null) -and ($createdOnOrAfter -eq $null))
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repository `
             -state $state -mergedOnOrAfter $mergedOnOrAfter
         }
         elseif (($mergedOnOrAfter -eq $null) -and ($createdOnOrAfter -ne $null))
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repository `
             -state $state -createdOnOrAfter $createdOnOrAfter
         }
         elseif (($mergedOnOrAfter -eq $null) -and ($createdOnOrAfter -eq $null))
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repository `
             -state $state
         }
@@ -577,9 +606,9 @@ function Get-GitHubTopPullRequestsRepository
 <#
     .SYNOPSIS Obtain repository collaborators
 
-    .EXAMPLE $collaborators = Get-GitHubRepositoryCollaborators -repositoryUrl @('https://github.com/PowerShell/DscResources')
+    .EXAMPLE $collaborators = Get-GitHubRepositoryCollaborator -repositoryUrl @('https://github.com/PowerShell/DscResources')
 #>
-function Get-GitHubRepositoryCollaborators
+function Get-GitHubRepositoryCollaborator
 {
     param 
     (
@@ -606,28 +635,41 @@ function Get-GitHubRepositoryCollaborators
             $query += "?access_token=$gitHubAccessToken"
         }
         
-        # Obtain all issues    
-        $jsonResult = Invoke-WebRequest $query
-        $collaborators = ConvertFrom-Json -InputObject $jsonResult.content
+        # Obtain all collaborators
+        do 
+        {
+            try
+            {
+                $jsonResult = Invoke-WebRequest $query
+                $collaborators = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
+            }
+            catch {
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
+                return $null
+            }
 
-        foreach ($collaborator in $collaborators)
-        {          
-            Write-Host "$index. $($collaborator.login)"
-            $index++
-
-            $resultToReturn += $collaborator
-        }
+            foreach ($collaborator in $collaborators)
+            {          
+                Write-Verbose "$index. $($collaborator.login)"
+                $index++
+                $resultToReturn += $collaborator
+            }
+            $query = Get-NextResultPage -jsonResult $jsonResult
+        } while ($query -ne $null)
     }
-
     return $resultToReturn
 }
 
 <#
     .SYNOPSIS Obtain repository contributors
 
-    .EXAMPLE $contributors = Get-GitHubRepositoryContributors -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
+    .EXAMPLE $contributors = Get-GitHubRepositoryContributor -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
 #>
-function Get-GitHubRepositoryContributors
+function Get-GitHubRepositoryContributor
 {
     param 
     (
@@ -654,17 +696,33 @@ function Get-GitHubRepositoryContributors
             $query += "?access_token=$gitHubAccessToken"
         }
         
-        # Obtain all issues    
-        $jsonResult = Invoke-WebRequest $query
-        $contributors = ConvertFrom-Json -InputObject $jsonResult.content
+        # Obtain all contributors    
+        do 
+        {
+            try
+            {
+                $jsonResult = Invoke-WebRequest $query
+                $contributors = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
+            }
+            catch {
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
+                return $null
+            }
 
-        foreach ($contributor in $contributors)
-        {          
-            Write-Host "$index. $($contributor.author.login) ## Commits: $($contributor.total)"
-            $index++
+            foreach ($contributor in $contributors)
+            {          
+                Write-Verbose "$index. $($contributor.author.login). Commits: $($contributor.total)"
+                $index++
+                $resultToReturn += $contributor
+            }
+            $query = Get-NextResultPage -jsonResult $jsonResult
+        } while ($query -ne $null)
 
-            $resultToReturn += $contributor
-        }
+
     }
 
     return $resultToReturn
@@ -679,9 +737,9 @@ function Get-GitHubRepositoryContributors
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
 
-    .EXAMPLE $members = Get-GitHubOrganizationMembers -organizationName PowerShell
+    .EXAMPLE $members = Get-GitHubOrganizationMember -organizationName PowerShell
 #>
-function Get-GitHubOrganizationMembers
+function Get-GitHubOrganizationMember
 {
     param 
     (
@@ -690,23 +748,42 @@ function Get-GitHubOrganizationMembers
         [String] $organizationName,
         $gitHubAccessToken = $script:gitHubToken
     )
+    $resultToReturn = @()
+    $index = 0
 
-    $query = "$script:gitHubApiOrgsUrl/$organizationName/members?per_page=$maxPageSize"
-        
+    $query = "$script:gitHubApiOrgsUrl/$organizationName/members"
+
     if (![string]::IsNullOrEmpty($gitHubAccessToken))
     {
-        $query += "&access_token=$gitHubAccessToken"
+        $query += "?access_token=$gitHubAccessToken"
     }
-    
-    $jsonResult = Invoke-WebRequest $query
-    $members = ConvertFrom-Json -InputObject $jsonResult.content
 
-    if ($members.Count -eq $maxPageSize)
+    do 
     {
-        Write-Warning "We hit the limit of $maxPageSize per page. This function currently does not support pagination."
-    }
+        try
+        {
+            $jsonResult = Invoke-WebRequest $query
+            $members = ConvertFrom-Json -InputObject $jsonResult.content
+        }    
+        catch [System.Net.WebException] {
+            Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+            return $null
+        }
+        catch {
+            Write-Error "Failed to execute query with exception: $($_.Exception)"
+            return $null
+        }
 
-    return $members
+        foreach ($member in $members)
+        {          
+            Write-Verbose "$index. $(($member).login)"
+            $index++
+            $resultToReturn += $member
+        }
+        $query = Get-NextResultPage -jsonResult $jsonResult
+    } while ($query -ne $null)
+
+    return $resultToReturn
 }
 
 <#
@@ -717,9 +794,9 @@ function Get-GitHubOrganizationMembers
         gitHubAccessToken GitHub API Access Token.
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
-    .EXAMPLE Get-GitHubTeams -organizationName PowerShell
+    .EXAMPLE Get-GitHubTeam -organizationName PowerShell
 #>
-function Get-GitHubTeams
+function Get-GitHubTeam
 {
     param 
     (
@@ -728,23 +805,42 @@ function Get-GitHubTeams
         [String] $organizationName,
         $gitHubAccessToken = $script:gitHubToken
     )
+    $resultToReturn = @()
+    $index = 0
 
-    $query = "$script:gitHubApiUrl/orgs/$organizationName/teams?per_page=$maxPageSize"
+    $query = "$script:gitHubApiUrl/orgs/$organizationName/teams"
         
     if (![string]::IsNullOrEmpty($gitHubAccessToken))
     {
-        $query += "&access_token=$gitHubAccessToken"
+        $query += "?access_token=$gitHubAccessToken"
     }
-    
-    $jsonResult = Invoke-WebRequest $query
-    $teams = ConvertFrom-Json -InputObject $jsonResult.content
 
-    if ($teams.Count -eq $maxPageSize)
+    do 
     {
-        Write-Warning "We hit the limit of $maxPageSize per page. This function currently does not support pagination."
-    }
+        try
+        {
+            $jsonResult = Invoke-WebRequest $query
+            $teams = ConvertFrom-Json -InputObject $jsonResult.content
+        }    
+        catch [System.Net.WebException] {
+            Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+            return $null
+        }
+        catch {
+            Write-Error "Failed to execute query with exception: $($_.Exception)"
+            return $null
+        }
 
-    return $teams
+        foreach ($team in $teams)
+        {          
+            Write-Verbose "$index. $(($team).name)"
+            $index++
+            $resultToReturn += $team
+        }
+        $query = Get-NextResultPage -jsonResult $jsonResult
+    } while ($query -ne $null)
+
+    return $resultToReturn
 }
 
 <#
@@ -758,9 +854,9 @@ function Get-GitHubTeams
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
 
-    .EXAMPLE $members = Get-GitHubTeamMembers -organizationName PowerShell -teamName Everybody
+    .EXAMPLE $members = Get-GitHubTeamMember -organizationName PowerShell -teamName Everybody
 #>
-function Get-GitHubTeamMembers
+function Get-GitHubTeamMember
 {
     param 
     (
@@ -772,8 +868,10 @@ function Get-GitHubTeamMembers
         [String] $teamName,
         $gitHubAccessToken = $script:gitHubToken
     )
+    $resultToReturn = @()
+    $index = 0
 
-    $teams = Get-GitHubTeams -organizationName $organizationName
+    $teams = Get-GitHubTeam -organizationName $organizationName
     $team = $teams | ? {$_.name -eq $teamName}
     if ($team) {
         Write-Host "Found team $teamName with id $($team.id)"
@@ -782,22 +880,39 @@ function Get-GitHubTeamMembers
         return
     }
 
-    $query = "$script:gitHubApiUrl/teams/$($team.id)/members?per_page=$maxPageSize"
+    $query = "$script:gitHubApiUrl/teams/$($team.id)/members"
         
     if (![string]::IsNullOrEmpty($gitHubAccessToken))
     {
-        $query += "&access_token=$gitHubAccessToken"
+        $query += "?access_token=$gitHubAccessToken"
     }
-    
-    $jsonResult = Invoke-WebRequest $query
-    $members = ConvertFrom-Json -InputObject $jsonResult.content
 
-    if ($members.Count -eq $maxPageSize)
+    do 
     {
-        Write-Warning "We hit the limit of $maxPageSize per page. This function currently does not support pagination."
-    }
+        try
+        {
+            $jsonResult = Invoke-WebRequest $query
+            $members = ConvertFrom-Json -InputObject $jsonResult.content
+        }    
+        catch [System.Net.WebException] {
+            Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+            return $null
+        }
+        catch {
+            Write-Error "Failed to execute query with exception: $($_.Exception)"
+            return $null
+        }
 
-    return $members
+        foreach ($member in $members)
+        {          
+            Write-Verbose "$index. $($member.login)"
+            $index++
+            $resultToReturn += $member
+        }
+        $query = Get-NextResultPage -jsonResult $jsonResult
+    } while ($query -ne $null)
+
+    return $resultToReturn
 }
 
 <#
@@ -828,34 +943,66 @@ function Get-GitHubOrganizationRepository
     if (![string]::IsNullOrEmpty($gitHubAccessToken))
     {
         $query += "&access_token=$gitHubAccessToken"
-    }
-        
-    $jsonResult = Invoke-WebRequest $query
-    $repositories = @()
-    foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
-    {
-      $repositories += $repository
-    }
+    }    
 
+    do
+    {
+        try
+        {
+            $jsonResult = Invoke-WebRequest $query
+            $repositories = (ConvertFrom-Json -InputObject $jsonResult.content)
+        }    
+        catch [System.Net.WebException] {
+            Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+            return $null
+        }
+        catch {
+            Write-Error "Failed to execute query with exception: $($_.Exception)"
+            return $null
+        }
+
+        foreach($repository in $repositories)
+        {
+            $resultToReturn += $repository
+        }
+        $query = Get-NextResultPage -jsonResult $jsonResult
+    } while ($query -ne $null)
+
+    return $resultToReturn
+}
+
+<#
+    .SYNOPSIS Function to get next page with results from query to GitHub API
+
+    .PARAM
+        jsonResult Result from the query to GitHub API
+#>
+function Get-NextResultPage
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        $jsonResult
+    )
+    
     if($jsonResult.Headers.Link -eq $null)
     {
-        return $repositories
-    }
-    
-    $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
-    $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
-    while($query -notmatch '&page=1')
-    {
-      $jsonResult = Invoke-WebRequest $query
-      foreach($repository in (ConvertFrom-Json -InputObject $jsonResult.content))
-      {
-        $repositories += $repository
-      }
-      $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
-      $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
+        return $null
     }
 
-    return $repositories
+    $nextLinkString = $jsonResult.Headers.Link.Split(',')[0]
+    
+    # Get url query for the next page
+    $query = $nextLinkString.Split(';')[0].replace('<','').replace('>','')
+    if ($query -notmatch '&page=1')
+    {
+        return $query
+    }
+    else
+    {
+        return $null
+    }
 }
 
 <#
@@ -891,12 +1038,12 @@ function Get-GitHubAuthenticatedUser
 }
 
 <#
-    .SYNOPSIS Returns array of unique contributors which were contributing to given set of repositories. Accepts output of Get-GitHubRepositoryContributors
+    .SYNOPSIS Returns array of unique contributors which were contributing to given set of repositories. Accepts output of Get-GitHubRepositoryContributor
 
-    .EXAMPLE $contributors = Get-GitHubRepositoryContributors -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
-             $uniqueContributors = Get-GitHubRepositoryUniqueContributors -contributors $contributors
+    .EXAMPLE $contributors = Get-GitHubRepositoryContributor -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
+             $uniqueContributors = Get-GitHubRepositoryUniqueContributor -contributors $contributors
 #>
-function Get-GitHubRepositoryUniqueContributors
+function Get-GitHubRepositoryUniqueContributor
 {
     param
     (
@@ -961,9 +1108,9 @@ function Get-GitHubRepositoryOwnerFromUrl
     .SYNOPSIS Returns array with dates with starts of $numberOfWeeks previous weeks.
         Dates are sorted in reverse chronological order
 
-    .EXAMPLE Get-WeekDates -numberOfWeeks 10
+    .EXAMPLE Get-WeekDate -numberOfWeeks 10
 #>
-function Get-WeekDates
+function Get-WeekDate
 {
     param
     (

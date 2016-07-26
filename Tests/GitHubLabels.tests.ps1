@@ -8,6 +8,11 @@
 if ($env:AppVeyor)
 {
     $global:gitHubApiToken = $env:token
+    $message = 'This run is executed in the AppVeyor environment. 
+GitHubApiToken won''t be decrypted in PR runs causing some tests to fail.
+403 errors possible due to GitHub hourly limit for unauthenticated queries.
+Define $global:gitHubApiToken manually and run tests on your machine first.'
+    Write-Host $message -BackgroundColor Yellow -ForegroundColor Black
 }
 
 $apiTokensFilePath = "$root\ApiTokens.psm1"
@@ -26,6 +31,10 @@ if ($global:gitHubApiToken -eq $null)
 {
     Write-Host "GitHubApiToken not defined, some of the tests will be skipped. `n403 errors possible due to GitHub hourly limit for unauthenticated queries." -BackgroundColor Yellow -ForegroundColor Black
     $script:tokenExists = $false
+}
+else
+{
+    Write-Host "GitHubApiToken has been defined in tests"
 }
 
 Import-Module (Join-Path -Path $root -ChildPath 'GitHubLabels.psm1') -Force
