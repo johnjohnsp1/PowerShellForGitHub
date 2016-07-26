@@ -636,7 +636,7 @@ function Get-GitHubRepositoryCollaborators
             $query += "?access_token=$gitHubAccessToken"
         }
         
-        # Obtain all issues
+        # Obtain all collaborators
         do 
         {
             try
@@ -697,17 +697,33 @@ function Get-GitHubRepositoryContributors
             $query += "?access_token=$gitHubAccessToken"
         }
         
-        # Obtain all issues    
-        $jsonResult = Invoke-WebRequest $query
-        $contributors = ConvertFrom-Json -InputObject $jsonResult.content
+        # Obtain all contributors    
+        do 
+        {
+            try
+            {
+                $jsonResult = Invoke-WebRequest $query
+                $contributors = ConvertFrom-Json -InputObject $jsonResult.content
+            }    
+            catch [System.Net.WebException] {
+                Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+                return $null
+            }
+            catch {
+                Write-Error "Failed to execute query with exception: $($_.Exception)"
+                return $null
+            }
 
-        foreach ($contributor in $contributors)
-        {          
-            Write-Host "$index. $($contributor.author.login) ## Commits: $($contributor.total)"
-            $index++
+            foreach ($contributor in $contributors)
+            {          
+                Write-Host "$index. $($contributor.author.login). Commits: $($contributor.total)"
+                $index++
+                $resultToReturn += $contributor
+            }
+            $query = Get-NextResultPage -jsonResult $jsonResult
+        } while ($query -ne $null)
 
-            $resultToReturn += $contributor
-        }
+
     }
 
     return $resultToReturn
