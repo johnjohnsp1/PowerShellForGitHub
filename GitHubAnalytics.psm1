@@ -24,7 +24,6 @@ $script:gitHubToken = $global:gitHubApiToken
 $script:gitHubApiUrl = "https://api.github.com"
 $script:gitHubApiReposUrl = "https://api.github.com/repos"
 $script:gitHubApiOrgsUrl = "https://api.github.com/orgs"
-$script:maxPageSize = 100
 
 <#
     .SYNOPSIS Function which gets list of issues for given repository
