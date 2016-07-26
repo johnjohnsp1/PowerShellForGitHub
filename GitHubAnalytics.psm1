@@ -749,23 +749,42 @@ function Get-GitHubOrganizationMembers
         [String] $organizationName,
         $gitHubAccessToken = $script:gitHubToken
     )
+    $resultToReturn = @()
+    $index = 0
 
-    $query = "$script:gitHubApiOrgsUrl/$organizationName/members?per_page=$maxPageSize"
-        
+    $query = "$script:gitHubApiOrgsUrl/$organizationName/members"
+
     if (![string]::IsNullOrEmpty($gitHubAccessToken))
     {
-        $query += "&access_token=$gitHubAccessToken"
+        $query += "?access_token=$gitHubAccessToken"
     }
-    
-    $jsonResult = Invoke-WebRequest $query
-    $members = ConvertFrom-Json -InputObject $jsonResult.content
 
-    if ($members.Count -eq $maxPageSize)
+    do 
     {
-        Write-Warning "We hit the limit of $maxPageSize per page. This function currently does not support pagination."
-    }
+        try
+        {
+            $jsonResult = Invoke-WebRequest $query
+            $members = ConvertFrom-Json -InputObject $jsonResult.content
+        }    
+        catch [System.Net.WebException] {
+            Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+            return $null
+        }
+        catch {
+            Write-Error "Failed to execute query with exception: $($_.Exception)"
+            return $null
+        }
 
-    return $members
+        foreach ($member in $members)
+        {          
+            Write-Verbose "$index. $(($member).login)"
+            $index++
+            $resultToReturn += $member
+        }
+        $query = Get-NextResultPage -jsonResult $jsonResult
+    } while ($query -ne $null)
+
+    return $resultToReturn
 }
 
 <#
@@ -787,23 +806,42 @@ function Get-GitHubTeams
         [String] $organizationName,
         $gitHubAccessToken = $script:gitHubToken
     )
-
-    $query = "$script:gitHubApiUrl/orgs/$organizationName/teams?per_page=$maxPageSize"
+    $resultToReturn = @()
+    $index = 0
+    
+    $query = "$script:gitHubApiUrl/orgs/$organizationName/teams"
         
     if (![string]::IsNullOrEmpty($gitHubAccessToken))
     {
-        $query += "&access_token=$gitHubAccessToken"
+        $query += "?access_token=$gitHubAccessToken"
     }
-    
-    $jsonResult = Invoke-WebRequest $query
-    $teams = ConvertFrom-Json -InputObject $jsonResult.content
 
-    if ($teams.Count -eq $maxPageSize)
+    do 
     {
-        Write-Warning "We hit the limit of $maxPageSize per page. This function currently does not support pagination."
-    }
+        try
+        {
+            $jsonResult = Invoke-WebRequest $query
+            $teams = ConvertFrom-Json -InputObject $jsonResult.content
+        }    
+        catch [System.Net.WebException] {
+            Write-Error "Failed to execute query with exception: $($_.Exception)`nHTTP status code: $($_.Exception.Response.StatusCode)"
+            return $null
+        }
+        catch {
+            Write-Error "Failed to execute query with exception: $($_.Exception)"
+            return $null
+        }
 
-    return $teams
+        foreach ($team in $teams)
+        {          
+            Write-Verbose "$index. $(($team).name)"
+            $index++
+            $resultToReturn += $team
+        }
+        $query = Get-NextResultPage -jsonResult $jsonResult
+    } while ($query -ne $null)
+
+    return $resultToReturn
 }
 
 <#
