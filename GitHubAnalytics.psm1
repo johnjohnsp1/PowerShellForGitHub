@@ -44,13 +44,13 @@ $script:gitHubApiOrgsUrl = "https://api.github.com/orgs"
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        $issues = Get-GitHubIssuesForRepository -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration')
+        $issues = Get-GitHubIssueForRepository -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration')
     .EXAMPLE
-        $issues = Get-GitHubIssuesForRepository `
+        $issues = Get-GitHubIssueForRepository `
             -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration', "https://github.com/PowerShell/xWindowsUpdate" ) `
             -createdOnOrAfter '2015-04-20'
 #>
-function Get-GitHubIssuesForRepository
+function Get-GitHubIssueForRepository
 {
     param
     (
@@ -172,10 +172,10 @@ function Get-GitHubIssuesForRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        Get-GitHubWeeklyIssuesForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xactivedirectory') -datatype closed
+        Get-GitHubWeeklyIssueForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xactivedirectory') -datatype closed
 
 #>
-function Get-GitHubWeeklyIssuesForRepository
+function Get-GitHubWeeklyIssueForRepository
 {
     param
     (
@@ -189,7 +189,7 @@ function Get-GitHubWeeklyIssuesForRepository
         $gitHubAccessToken = $script:gitHubToken
     )
 
-    $weekDates = Get-WeekDates -numberOfWeeks $numberOfWeeks
+    $weekDates = Get-WeekDate -numberOfWeeks $numberOfWeeks
     $endOfWeek = Get-Date
     $results = @()
     $totalIssues = 0
@@ -202,12 +202,12 @@ function Get-GitHubWeeklyIssuesForRepository
 
         if ($dataType -eq "closed")
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repositoryUrl -state 'all' -closedOnOrAfter $week -closedOnOrBefore $endOfWeek    
         }
         elseif ($dataType -eq "created")
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repositoryUrl -state 'all' -createdOnOrAfter $week -createdOnOrBefore $endOfWeek
         }
         
@@ -246,10 +246,10 @@ function Get-GitHubWeeklyIssuesForRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        Get-GitHubTopIssuesRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xCertificate', 'https://github.com/powershell/xwebadministration') -state open
+        Get-GitHubTopIssueRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xCertificate', 'https://github.com/powershell/xwebadministration') -state open
 
 #>
-function Get-GitHubTopIssuesRepository
+function Get-GitHubTopIssueRepository
 {
     param
     (
@@ -274,25 +274,25 @@ function Get-GitHubTopIssuesRepository
     {
         if (($closedOnOrAfter -ne $null) -and ($createdOnOrAfter -ne $null))
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repository `
             -state $state -closedOnOrAfter $closedOnOrAfter -createdOnOrAfter $createdOnOrAfter
         }
         elseif (($closedOnOrAfter -ne $null) -and ($createdOnOrAfter -eq $null))
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repository `
             -state $state -closedOnOrAfter $closedOnOrAfter
         }
         elseif (($closedOnOrAfter -eq $null) -and ($createdOnOrAfter -ne $null))
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repository `
             -state $state -createdOnOrAfter $createdOnOrAfter
         }
         elseif (($closedOnOrAfter -eq $null) -and ($createdOnOrAfter -eq $null))
         {
-            $issues = Get-GitHubIssuesForRepository `
+            $issues = Get-GitHubIssueForRepository `
             -repositoryUrl $repository `
             -state $state
         }
@@ -334,14 +334,14 @@ function Get-GitHubTopIssuesRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        $pullRequests = Get-GitHubPullRequestsForRepository -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration')
+        $pullRequests = Get-GitHubPullRequestForRepository -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration')
     .EXAMPLE
-        $pullRequests = Get-GitHubPullRequestsForRepository `
+        $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl @('https://github.com/PowerShell/xPSDesiredStateConfiguration', 'https://github.com/PowerShell/xWebAdministration') `
             -state closed -mergedOnOrAfter 2015-02-13 -mergedOnOrBefore 2015-06-17
 
 #>
-function Get-GitHubPullRequestsForRepository
+function Get-GitHubPullRequestForRepository
 {
     param 
     (
@@ -457,10 +457,10 @@ function Get-GitHubPullRequestsForRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        Get-GitHubWeeklyPullRequestsForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xwebadministration') -datatype merged
+        Get-GitHubWeeklyPullRequestForRepository -repositoryUrl @('https://github.com/powershell/xpsdesiredstateconfiguration', 'https://github.com/powershell/xwebadministration') -datatype merged
 
 #>
-function Get-GitHubWeeklyPullRequestsForRepository
+function Get-GitHubWeeklyPullRequestForRepository
 {
     param
     (
@@ -474,7 +474,7 @@ function Get-GitHubWeeklyPullRequestsForRepository
         $gitHubAccessToken = $script:gitHubToken
     )
     
-    $weekDates = Get-WeekDates -numberOfWeeks $numberOfWeeks
+    $weekDates = Get-WeekDate -numberOfWeeks $numberOfWeeks
     $endOfWeek = Get-Date
     $results = @()
     $totalPullRequests = 0
@@ -487,13 +487,13 @@ function Get-GitHubWeeklyPullRequestsForRepository
 
         if ($dataType -eq "merged")
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repositoryUrl `
             -state 'all' -mergedOnOrAfter $week -mergedOnOrBefore $endOfWeek
         }
         elseif ($dataType -eq "created")
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repositoryUrl `
             -state 'all' -createdOnOrAfter $week -createdOnOrBefore $endOfWeek
         }
@@ -534,10 +534,10 @@ function Get-GitHubWeeklyPullRequestsForRepository
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
     .EXAMPLE
-        Get-GitHubTopPullRequestsRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xwebadministration') -state closed -mergedOnOrAfter 2015-04-20
+        Get-GitHubTopPullRequestRepository -repositoryUrl @('https://github.com/powershell/xsharepoint', 'https://github.com/powershell/xwebadministration') -state closed -mergedOnOrAfter 2015-04-20
 
 #>
-function Get-GitHubTopPullRequestsRepository
+function Get-GitHubTopPullRequestRepository
 {
     param
     (
@@ -562,25 +562,25 @@ function Get-GitHubTopPullRequestsRepository
     {
         if (($mergedOnOrAfter -ne $null) -and ($createdOnOrAfter -ne $null))
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repository `
             -state $state -mergedOnOrAfter $mergedOnOrAfter -createdOnOrAfter $createdOnOrAfter
         }
         elseif (($mergedOnOrAfter -ne $null) -and ($createdOnOrAfter -eq $null))
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repository `
             -state $state -mergedOnOrAfter $mergedOnOrAfter
         }
         elseif (($mergedOnOrAfter -eq $null) -and ($createdOnOrAfter -ne $null))
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repository `
             -state $state -createdOnOrAfter $createdOnOrAfter
         }
         elseif (($mergedOnOrAfter -eq $null) -and ($createdOnOrAfter -eq $null))
         {
-            $pullRequests = Get-GitHubPullRequestsForRepository `
+            $pullRequests = Get-GitHubPullRequestForRepository `
             -repositoryUrl $repository `
             -state $state
         }
@@ -606,9 +606,9 @@ function Get-GitHubTopPullRequestsRepository
 <#
     .SYNOPSIS Obtain repository collaborators
 
-    .EXAMPLE $collaborators = Get-GitHubRepositoryCollaborators -repositoryUrl @('https://github.com/PowerShell/DscResources')
+    .EXAMPLE $collaborators = Get-GitHubRepositoryCollaborator -repositoryUrl @('https://github.com/PowerShell/DscResources')
 #>
-function Get-GitHubRepositoryCollaborators
+function Get-GitHubRepositoryCollaborator
 {
     param 
     (
@@ -667,9 +667,9 @@ function Get-GitHubRepositoryCollaborators
 <#
     .SYNOPSIS Obtain repository contributors
 
-    .EXAMPLE $contributors = Get-GitHubRepositoryContributors -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
+    .EXAMPLE $contributors = Get-GitHubRepositoryContributor -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
 #>
-function Get-GitHubRepositoryContributors
+function Get-GitHubRepositoryContributor
 {
     param 
     (
@@ -737,9 +737,9 @@ function Get-GitHubRepositoryContributors
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
 
-    .EXAMPLE $members = Get-GitHubOrganizationMembers -organizationName PowerShell
+    .EXAMPLE $members = Get-GitHubOrganizationMember -organizationName PowerShell
 #>
-function Get-GitHubOrganizationMembers
+function Get-GitHubOrganizationMember
 {
     param 
     (
@@ -794,9 +794,9 @@ function Get-GitHubOrganizationMembers
         gitHubAccessToken GitHub API Access Token.
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
-    .EXAMPLE Get-GitHubTeams -organizationName PowerShell
+    .EXAMPLE Get-GitHubTeam -organizationName PowerShell
 #>
-function Get-GitHubTeams
+function Get-GitHubTeam
 {
     param 
     (
@@ -854,9 +854,9 @@ function Get-GitHubTeams
             Get github token from https://github.com/settings/tokens 
             If you don't provide it, you can still use this script, but you will be limited to 60 queries per hour.
 
-    .EXAMPLE $members = Get-GitHubTeamMembers -organizationName PowerShell -teamName Everybody
+    .EXAMPLE $members = Get-GitHubTeamMember -organizationName PowerShell -teamName Everybody
 #>
-function Get-GitHubTeamMembers
+function Get-GitHubTeamMember
 {
     param 
     (
@@ -871,7 +871,7 @@ function Get-GitHubTeamMembers
     $resultToReturn = @()
     $index = 0
 
-    $teams = Get-GitHubTeams -organizationName $organizationName
+    $teams = Get-GitHubTeam -organizationName $organizationName
     $team = $teams | ? {$_.name -eq $teamName}
     if ($team) {
         Write-Host "Found team $teamName with id $($team.id)"
@@ -1038,12 +1038,12 @@ function Get-GitHubAuthenticatedUser
 }
 
 <#
-    .SYNOPSIS Returns array of unique contributors which were contributing to given set of repositories. Accepts output of Get-GitHubRepositoryContributors
+    .SYNOPSIS Returns array of unique contributors which were contributing to given set of repositories. Accepts output of Get-GitHubRepositoryContributor
 
-    .EXAMPLE $contributors = Get-GitHubRepositoryContributors -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
-             $uniqueContributors = Get-GitHubRepositoryUniqueContributors -contributors $contributors
+    .EXAMPLE $contributors = Get-GitHubRepositoryContributor -repositoryUrl @('https://github.com/PowerShell/DscResources', 'https://github.com/PowerShell/xWebAdministration')
+             $uniqueContributors = Get-GitHubRepositoryUniqueContributor -contributors $contributors
 #>
-function Get-GitHubRepositoryUniqueContributors
+function Get-GitHubRepositoryUniqueContributor
 {
     param
     (
@@ -1108,9 +1108,9 @@ function Get-GitHubRepositoryOwnerFromUrl
     .SYNOPSIS Returns array with dates with starts of $numberOfWeeks previous weeks.
         Dates are sorted in reverse chronological order
 
-    .EXAMPLE Get-WeekDates -numberOfWeeks 10
+    .EXAMPLE Get-WeekDate -numberOfWeeks 10
 #>
-function Get-WeekDates
+function Get-WeekDate
 {
     param
     (
