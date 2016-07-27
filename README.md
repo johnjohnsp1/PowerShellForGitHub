@@ -9,6 +9,12 @@ This repository currently contains two modules:
 
 Please scroll down to the "Examples" section for details on what operations are supported.
 
+## Installation
+You can get latest release of PowerShellForGitHub from [PowerShell Gallery](https://www.powershellgallery.com/packages/PowerShellForGitHub/0.2.0)
+```PowerShell
+Install-Module -Name PowerShellForGitHub 
+```
+
 ## Usage
 1) Rename ApiTokensTemplate.psm1 to ApiTokens.psm1 and update value of $global:gitHubApiToken with GitHub token for your account
   * You can obtain it from https://github.com/settings/tokens). 
